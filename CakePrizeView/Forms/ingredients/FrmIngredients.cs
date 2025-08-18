@@ -1,13 +1,4 @@
 ﻿using CakePrizeDB;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 
 namespace CakePrizeView.Forms.ingredients
 {
@@ -24,8 +15,11 @@ namespace CakePrizeView.Forms.ingredients
         private void FrmIngredients_Load(object sender, EventArgs e)
         {
             CakePrizeDBQueries cakePrizeDBQueries = new CakePrizeDBQueries();
-            var con = cakePrizeDBQueries.StartConnection();
-            cakePrizeDBQueries.GetUnitType(con);
+            var list = cakePrizeDBQueries.GetUnitType();
+            foreach (var item in list)
+            {
+                cmbUnits.Items.Add(item);
+            }
         }
     }
 }
