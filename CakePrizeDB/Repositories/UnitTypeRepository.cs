@@ -14,16 +14,16 @@ namespace CakePrizeDB.Repositories
             _connection = connection ?? throw new ArgumentNullException(nameof(connection));
         }
 
-        public List<UnitType> GetAll()
+        public List<UnitTypeModel> GetAll()
         {
-            var unitTypes = new List<UnitType>();
+            var unitTypes = new List<UnitTypeModel>();
             
             using var command = new SqlCommand(DatabaseQueries.UnitType.GetAll, _connection);
             using var reader = command.ExecuteReader();
             
             while (reader.Read())
             {
-                unitTypes.Add(new UnitType
+                unitTypes.Add(new UnitTypeModel
                 {
                     Id = reader.GetGuid(0),
                     Name = reader.GetString(1),
@@ -34,7 +34,7 @@ namespace CakePrizeDB.Repositories
             return unitTypes;
         }
 
-        public UnitType? GetById(Guid id)
+        public UnitTypeModel? GetById(Guid id)
         {
             using var command = new SqlCommand(DatabaseQueries.UnitType.GetById, _connection);
             command.Parameters.AddWithValue("@UnitTypeId", id);
@@ -42,7 +42,7 @@ namespace CakePrizeDB.Repositories
             using var reader = command.ExecuteReader();
             if (reader.Read())
             {
-                return new UnitType
+                return new UnitTypeModel
                 {
                     Id = reader.GetGuid(0),
                     Name = reader.GetString(1),
@@ -53,7 +53,7 @@ namespace CakePrizeDB.Repositories
             return null;
         }
 
-        public void Insert(UnitType unitType)
+        public void Insert(UnitTypeModel unitType)
         {
             using var command = new SqlCommand(DatabaseQueries.UnitType.Insert, _connection);
             command.Parameters.AddWithValue("@Id", unitType.Id);

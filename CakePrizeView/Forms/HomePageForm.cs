@@ -25,7 +25,7 @@ namespace CakePrizeView
         private void BtnIngredients_Click(object sender, EventArgs e)
         {
             Hide();
-            FrmIngredients formCupcake = new FrmIngredients(FindForm());
+            IngredientForm formCupcake = new IngredientsForm(FindForm());
             formCupcake.Show();
         }
 

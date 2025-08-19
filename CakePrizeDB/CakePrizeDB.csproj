@@ -12,6 +12,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\CakePrize\CakePrizeCore.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="Queries\*.sql">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

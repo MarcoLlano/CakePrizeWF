@@ -12,17 +12,41 @@ namespace CakePrizeDB
         private SqlConnection sqlConnection;
         public CakePrizeDBQueries()
         {
-            var configuredConnectionString = ConfigurationManager.ConnectionStrings["CakePrize"]?.ConnectionString
-                ?? Environment.GetEnvironmentVariable("CAKEPRIZE__CONNECTIONSTRING");
+            conUrl = GetConnectionString();
+            StartConnection();
+        }
 
-            if (string.IsNullOrWhiteSpace(configuredConnectionString))
+        private string GetConnectionString()
+        {
+            // Try multiple sources for the connection string
+            var connectionString = ConfigurationManager.ConnectionStrings["CakePrize"]?.ConnectionString
+                ?? Environment.GetEnvironmentVariable("CAKEPRIZE__CONNECTIONSTRING")
+                ?? Environment.GetEnvironmentVariable("CAKEPRIZE_CONNECTIONSTRING");
+
+            if (string.IsNullOrWhiteSpace(connectionString))
             {
-                throw new InvalidOperationException("Missing connection string. Define 'CakePrize'" +
-                    " in connectionStrings or set CAKEPRIZE__CONNECTIONSTRING env var.");
+                // Try to load configuration from the executing assembly
+                try
+                {
+                    var config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+                    connectionString = config.ConnectionStrings?.ConnectionStrings["CakePrize"]?.ConnectionString;
+                }
+                catch
+                {
+                    // Ignore configuration loading errors
+                }
             }
 
-            conUrl = configuredConnectionString;
-            StartConnection();
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                throw new InvalidOperationException(
+                    "Missing connection string. Please ensure one of the following is configured:\n" +
+                    "1. 'CakePrize' connection string in App.config\n" +
+                    "2. CAKEPRIZE__CONNECTIONSTRING environment variable\n" +
+                    "3. CAKEPRIZE_CONNECTIONSTRING environment variable");
+            }
+
+            return connectionString;
         }
 
         private void StartConnection()
@@ -46,6 +70,10 @@ namespace CakePrizeDB
             int i = sqlCommand.ExecuteNonQuery(); // when !=0, sql was success.
         }
 
+        /// <summary>
+        /// OLD APPROACH - Returns just acronyms as strings
+        /// Use the new UnitTypeService for better functionality
+        /// </summary>
         public List<string> GetUnitType()
         {
             string query = $"SELECT * FROM [CakePrize].[dbo].[unit_type]";
@@ -55,18 +83,20 @@ namespace CakePrizeDB
             var unitTypes = new List<string>();
             while (reader.Read())
             {
-                var t = reader.GetColumnSchema();
-                var t1 = reader.GetColumnSchemaAsync;
-                var t2= reader.GetColumnSchema;
-                var t3 = reader.GetEnumerator();
-                var t4 = reader.GetHashCode();
-                var t5 = reader.GetSchemaTable();
-                var t6 = reader.GetSchemaTableAsync();
-                var t7 = reader.GetColumnSchema();
-                unitTypes.Add(reader.GetString(2).Replace(" ",string.Empty));
+                unitTypes.Add(reader.GetString(2).Replace(" ", string.Empty));
             }
 
             return unitTypes;
+        }
+
+        /// <summary>
+        /// NEW APPROACH - Returns strongly-typed UnitTypeModel objects
+        /// Recommended way to work with unit types
+        /// </summary>
+        public List<Models.UnitTypeModel> GetUnitTypesNew()
+        {
+            var service = new Services.UnitTypeService(sqlConnection);
+            return service.GetAllUnitTypes();
         }
     }
 }

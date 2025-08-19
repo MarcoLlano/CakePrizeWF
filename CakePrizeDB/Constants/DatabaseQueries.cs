@@ -13,9 +13,9 @@ namespace CakePrizeDB.Constants
 
         public static class Ingredient
         {
-            public const string GetAll = "SELECT * FROM [CakePrize].[dbo].[ingredients]";
-            public const string GetById = "SELECT * FROM [CakePrize].[dbo].[ingredients] WHERE id = @IngredientId";
-            public const string Insert = "INSERT INTO [CakePrize].[dbo].[ingredients] (name, unit_type_id, price_per_unit) VALUES (@Name, @UnitTypeId, @PricePerUnit)";
+            public const string GetAll = "SELECT * FROM [CakePrize].[dbo].[ingredient]";
+            public const string GetById = "SELECT * FROM [CakePrize].[dbo].[ingredient] WHERE id = @IngredientId";
+            public const string Insert = "INSERT INTO [CakePrize].[dbo].[ingredient] (name, unit_type_id, price_per_unit) VALUES (@Name, @UnitTypeId, @PricePerUnit)";
         }
     }
 }
