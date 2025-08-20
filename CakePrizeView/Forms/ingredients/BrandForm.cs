@@ -1,30 +1,23 @@
-﻿using CakePrizeCore.libs.DBUtils;
-using CakePrizeDB;
-using CakePrizeDB.Services;
+﻿using CakePrizeDB.Services;
+using Microsoft.Data.SqlClient;
 
 namespace CakePrizeView.Forms.ingredients
 {
-    public partial class BrandForm: Form
+    public partial class BrandForm : Form
     {
         private Form previousForm;
-        private UnitTypeService unitTypeService;
-        private IngredientService ingredientService;
+        private BrandService brandService;
 
-        public BrandForm(Form previousForm)
+        public BrandForm(Form previousForm, SqlConnection sqlConnection)
         {
             InitializeComponent();
             this.previousForm = previousForm;
-            unitTypeService = new UnitTypeService(DBUtils.OpenDBConnection());
-            ingredientService = new IngredientService(DBUtils.OpenDBConnection());
+            brandService = new BrandService(sqlConnection);
         }
 
-        private void FrmIngredients_Load(object sender, EventArgs e)
+        private void FrmBrands_Load(object sender, EventArgs e)
         {
-            List<CakePrizeDB.Models.UnitTypeModel> t = unitTypeService.GetAllUnitTypes();
-            foreach (var item in unitTypeService.GetAllUnitTypes())
-            {
-                cmbUnits.Items.Add($"{item.Name}-{item.Acronym}");
-            }
+            GetAllBrands(sender, e);
         }
 
         private void btnBackIngredientForm_Click(object sender, EventArgs e)
@@ -39,46 +32,27 @@ namespace CakePrizeView.Forms.ingredients
             previousForm.Close();
         }
 
-        private void GetAllIngredients(object sender, EventArgs e)
+        private void btnSaveBrand_Click(object sender, EventArgs e)
         {
-            List<CakePrizeDB.Models.IngredientModel>  test = ingredientService.GetAllIngredients();
+            string temp = txtBrandName.Text;
+            var brand = brandService.CreateBrand(txtBrandName.Text, richTBBrandComments.Text, "Marco Llano", "Marco Llano");
+            txtBrandName.Text = string.Empty;
+            richTBBrandComments.Text = string.Empty;
+            lblSaveStatus.Text = $"La marca {temp} se registro correctamente!";
         }
 
-        private void chkbDefaultWholesale_CheckedChanged(object sender, EventArgs e)
+        private void GetAllBrands(object sender, EventArgs e)
         {
-            if (!chkbDefaultWholesale.Checked)
+            TSCmbBrandList.Items.Clear();
+            foreach (var item in brandService.GetAllBrands())
             {
-                chkbDefaultWholesale.Text = string.Empty;
+                TSCmbBrandList.Items.Add($"{item.Name}");
             }
-            SelectDefaultPrice(sender);
         }
 
-        private void chkbDefaultRetail_CheckedChanged(object sender, EventArgs e)
+        private void ClearSaveStatusLabel(object sender, EventArgs e)
         {
-            if (!chkbDefaultRetail.Checked)
-            {
-                chkbDefaultRetail.Text = string.Empty;
-            }
-            SelectDefaultPrice(sender);
-        }
-
-        private void SelectDefaultPrice(object sender)
-        {
-            CheckBox currentCheckBox = sender as CheckBox;
-            if (currentCheckBox != null && currentCheckBox.Checked)
-            {
-                // Iterate through all other checkboxes in the group (e.g., on the same panel or form)
-                foreach (Control control in this.Controls) // Or a specific container like a Panel
-                {
-                    if (control is CheckBox otherCheckBox && otherCheckBox != currentCheckBox)
-                    {
-                        // Uncheck the other checkboxes
-                        currentCheckBox.Text = "Por defecto.";
-                        otherCheckBox.Text = string.Empty;
-                        otherCheckBox.Checked = false;
-                    }
-                }
-            }
+            lblSaveStatus.Text = string.Empty; 
         }
     }
 }

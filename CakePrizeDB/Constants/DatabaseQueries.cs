@@ -15,7 +15,19 @@ namespace CakePrizeDB.Constants
         {
             public const string GetAll = "SELECT * FROM [CakePrize].[dbo].[ingredient]";
             public const string GetById = "SELECT * FROM [CakePrize].[dbo].[ingredient] WHERE id = @IngredientId";
-            public const string Insert = "INSERT INTO [CakePrize].[dbo].[ingredient] (name, unit_type_id, price_per_unit) VALUES (@Name, @UnitTypeId, @PricePerUnit)";
+            public const string Insert = "INSERT INTO [CakePrize].[dbo].[ingredient] (id, name, unit_type_id, brand_id, " +
+                "retail_price_1k, wholesale_price_1k, default_selected_price, comments, created_date, created_user, modified_date," +
+                " modified_user) VALUES (@Id, @Name, @UnitTypeId, @BrandId, @RetailPrice1K, @WholesalePrice1K, @DefaultPrice, @Comments," +
+                " @CreatedDate, @CreatedUser, @ModifiedDate, @ModifiedUser)";
+        }
+
+        public static class Brand
+        {
+            public const string GetAll = "SELECT * FROM [CakePrize].[dbo].[brand]";
+            public const string GetById = "SELECT * FROM [CakePrize].[dbo].[brand] WHERE id = @BrandId";
+            public const string Insert = "INSERT INTO [CakePrize].[dbo].[brand] " +
+                "(id, name, comments, created_date, created_user, modified_date, modified_user) VALUES " +
+                "(@Id, @Name, @Comments, @CreatedDate, @CreatedUser, @ModifiedDate, @ModifiedUser)";
         }
     }
 }

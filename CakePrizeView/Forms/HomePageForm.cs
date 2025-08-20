@@ -1,5 +1,6 @@
 ﻿using CakePrizeView.forms;
 using CakePrizeView.Forms.ingredients;
+using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -15,17 +16,19 @@ namespace CakePrizeView
     public partial class FormHomePageForm : Form
     {
         private Form previousForm;
+        private SqlConnection sqlConnection;
 
-        public FormHomePageForm(Form previousForm)
+        public FormHomePageForm(Form previousForm, SqlConnection sqlConnection)
         {
             InitializeComponent();
             this.previousForm = previousForm;
+            this.sqlConnection = sqlConnection;
         }
 
         private void BtnIngredients_Click(object sender, EventArgs e)
         {
             Hide();
-            IngredientForm formCupcake = new IngredientsForm(FindForm());
+            IngredientForm formCupcake = new IngredientForm(FindForm(), sqlConnection);
             formCupcake.Show();
         }
 
@@ -45,6 +48,13 @@ namespace CakePrizeView
         {
             Close();
             Application.Exit();
+        }
+
+        private void btnBrands_Click(object sender, EventArgs e)
+        {
+            Hide();
+            BrandForm formCupcake = new BrandForm(FindForm(), sqlConnection);
+            formCupcake.Show();
         }
     }
 }

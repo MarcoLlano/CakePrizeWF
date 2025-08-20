@@ -1,4 +1,6 @@
-﻿using System;
+﻿using CakePrizeCore.libs.DBUtils;
+using Microsoft.Data.SqlClient;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -12,9 +14,11 @@ namespace CakePrizeView.forms
 {
     public partial class FrmLoginForm : Form
     {
+        private SqlConnection sqlConnection;
         public FrmLoginForm()
         {
             InitializeComponent();
+            sqlConnection = DBUtils.OpenDBConnection();
             //TxtPassword.Clear();
             //TxtUsername.Clear();
         }
@@ -26,7 +30,7 @@ namespace CakePrizeView.forms
             if (ValidateCredentials(TxtUsername.Text, TxtPassword.Text))
             {
                 Hide();
-                FormHomePageForm formMainForm = new FormHomePageForm(FindForm());
+                FormHomePageForm formMainForm = new FormHomePageForm(FindForm(), sqlConnection);
                 formMainForm.Show();
             }
             else

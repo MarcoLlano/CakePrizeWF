@@ -1,6 +1,7 @@
 ﻿using CakePrizeCore.libs.DBUtils;
 using CakePrizeDB;
 using CakePrizeDB.Services;
+using Microsoft.Data.SqlClient;
 
 namespace CakePrizeView.Forms.ingredients
 {
@@ -10,17 +11,16 @@ namespace CakePrizeView.Forms.ingredients
         private UnitTypeService unitTypeService;
         private IngredientService ingredientService;
 
-        public IngredientForm(Form previousForm)
+        public IngredientForm(Form previousForm, SqlConnection sqlConnection)
         {
             InitializeComponent();
             this.previousForm = previousForm;
-            unitTypeService = new UnitTypeService(DBUtils.OpenDBConnection());
-            ingredientService = new IngredientService(DBUtils.OpenDBConnection());
+            unitTypeService = new UnitTypeService(sqlConnection);
+            ingredientService = new IngredientService(sqlConnection);
         }
 
         private void FrmIngredients_Load(object sender, EventArgs e)
         {
-            List<CakePrizeDB.Models.UnitTypeModel> t = unitTypeService.GetAllUnitTypes();
             foreach (var item in unitTypeService.GetAllUnitTypes())
             {
                 cmbUnits.Items.Add($"{item.Name}-{item.Acronym}");
