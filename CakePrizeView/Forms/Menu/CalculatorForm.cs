@@ -1,16 +1,20 @@
 using CakePrize.libs.utils;
 using CakePrizeView.Utils;
+using Microsoft.Data.SqlClient;
 
 namespace CakePrizeView
 {
-    public partial class FormCupcake : Form
+    public partial class CalculatorForm : Form
     {
         private Form previousForm;
+        private SqlConnection sqlConnection;
         private int data;
-        public FormCupcake(Form form)
+
+        public CalculatorForm(Form previousForm, SqlConnection sqlConnection)
         {
             InitializeComponent();
-            previousForm = form;
+            this.previousForm = previousForm;
+            this.sqlConnection = sqlConnection;
         }
 
         private void UpdateTotalLabel()

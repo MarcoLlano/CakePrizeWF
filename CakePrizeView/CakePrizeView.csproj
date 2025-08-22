@@ -9,12 +9,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="System.Collections" Version="4.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\CakePrizeDB\CakePrizeDB.csproj" />
     <ProjectReference Include="..\CakePrize\CakePrizeCore.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="Forms\ingredients\BrandForm.cs">
+    <Compile Update="Forms\Menu\BrandForm.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Update="Properties\Resources.Designer.cs">

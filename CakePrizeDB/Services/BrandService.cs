@@ -40,7 +40,7 @@ namespace CakePrizeDB.Services
         /// <returns>The created unit type with generated ID</returns>
         public BrandModel CreateBrand(string name, string comments, string createdUser, string modifiedUser)
         {
-            var unitType = new BrandModel
+            var brand = new BrandModel
             {
                 Id = Guid.NewGuid(),
                 Name = name,
@@ -52,8 +52,8 @@ namespace CakePrizeDB.Services
 
             };
 
-            _repository.Insert(unitType);
-            return unitType;
+            _repository.Insert(brand);
+            return brand;
         }
     }
 }

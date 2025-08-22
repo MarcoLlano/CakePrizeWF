@@ -1,4 +1,4 @@
-using CakePrizeView.forms;
+using CakePrizeView.Forms;
 
 namespace CakePrizeView
 {

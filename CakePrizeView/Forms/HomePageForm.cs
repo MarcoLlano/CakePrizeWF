@@ -1,15 +1,7 @@
-﻿using CakePrizeView.forms;
+﻿using CakePrizeView.Forms;
 using CakePrizeView.Forms.ingredients;
+using CakePrizeView.Forms.Menu.Products;
 using Microsoft.Data.SqlClient;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 
 namespace CakePrizeView
 {
@@ -25,13 +17,6 @@ namespace CakePrizeView
             this.sqlConnection = sqlConnection;
         }
 
-        private void BtnIngredients_Click(object sender, EventArgs e)
-        {
-            Hide();
-            IngredientForm formCupcake = new IngredientForm(FindForm(), sqlConnection);
-            formCupcake.Show();
-        }
-
         private void FormMainForm_FormClosed(object sender, FormClosedEventArgs e)
         {
             Application.Exit();
@@ -42,19 +27,65 @@ namespace CakePrizeView
             Hide();
             previousForm = new FrmLoginForm();
             previousForm.Show();
+            
+            if(previousForm.Created && previousForm.Visible)
+            {
+            }
         }
 
-        private void BtnExit_Click(object sender, EventArgs e)
+        private void btnClose_Click(object sender, EventArgs e)
         {
             Close();
-            Application.Exit();
+            previousForm.Close();
         }
 
-        private void btnBrands_Click(object sender, EventArgs e)
+        private void ingredientesToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Hide();
+            IngredientForm formCupcake = new IngredientForm(FindForm() ?? new FrmLoginForm(), sqlConnection);
+            formCupcake.Show();
+        }
+
+        private void marcasToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Hide();
             BrandForm formCupcake = new BrandForm(FindForm(), sqlConnection);
             formCupcake.Show();
+        }
+
+        private void calculadoraToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Hide();
+            CalculatorForm calculatorForm = new CalculatorForm(new ErrorNotFoundForm(), sqlConnection);
+            calculatorForm.Show();
+        }
+
+        private void unidadToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Hide();
+            ProductUnitForm productUnitForm = new ProductUnitForm(FindForm(), sqlConnection);
+            productUnitForm.Show();
+        }
+
+        private void armarCombosToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Hide();
+            ProductSetForm productSetForm = new ProductSetForm(FindForm(), sqlConnection);
+            productSetForm.Show();
+        }
+
+        private void combosEspecialesToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Hide();
+            ProductSpecialComboForm productSpecialComboForm = new ProductSpecialComboForm(FindForm(), sqlConnection);
+            productSpecialComboForm.Show();
+        }
+
+        private void promocionesToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Hide();
+            ProductPromosForm productPromosForm = new ProductPromosForm(FindForm(), sqlConnection);
+            productPromosForm.Show();
         }
     }
 }
