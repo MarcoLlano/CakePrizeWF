@@ -1,6 +1,7 @@
 ﻿using CakePrizeView.Forms;
 using CakePrizeView.Forms.ingredients;
 using CakePrizeView.Forms.Menu.Products;
+using CakePrizeView.Utils;
 using Microsoft.Data.SqlClient;
 
 namespace CakePrizeView
@@ -15,6 +16,12 @@ namespace CakePrizeView
             InitializeComponent();
             this.previousForm = previousForm;
             this.sqlConnection = sqlConnection;
+            
+            // Configure menu visibility based on user permissions
+            ConfigureMenuPermissions();
+            
+            // Update form title with user information
+            UpdateFormTitle();
         }
 
         private void FormMainForm_FormClosed(object sender, FormClosedEventArgs e)
@@ -24,13 +31,12 @@ namespace CakePrizeView
 
         private void BtnLogout_Click(object sender, EventArgs e)
         {
+            // Clear the user session
+            UserSession.ClearSession();
+            
             Hide();
             previousForm = new FrmLoginForm();
             previousForm.Show();
-            
-            if(previousForm.Created && previousForm.Visible)
-            {
-            }
         }
 
         private void btnClose_Click(object sender, EventArgs e)
@@ -86,6 +92,56 @@ namespace CakePrizeView
             Hide();
             ProductPromosForm productPromosForm = new ProductPromosForm(FindForm() ?? new ErrorNotFoundForm(), sqlConnection);
             productPromosForm.Show();
+        }
+
+        /// <summary>
+        /// Configures menu visibility based on user permissions
+        /// </summary>
+        private void ConfigureMenuPermissions()
+        {
+            // Ingredients management - PastryChef and Admin only
+            ingredientesToolStripMenuItem.Visible = UserSession.CanManageIngredients();
+            
+            // Brand management - PastryChef and Admin only
+            marcasToolStripMenuItem.Visible = UserSession.CanManageBrands();
+            
+            // Product management - PastryChef and Admin only
+            unidadToolStripMenuItem.Visible = UserSession.CanManageProducts();
+            armarCombosToolStripMenuItem.Visible = UserSession.CanManageProducts();
+            combosEspecialesToolStripMenuItem.Visible = UserSession.CanManageProducts();
+            promocionesToolStripMenuItem.Visible = UserSession.CanManageProducts();
+            
+            // Calculator - Available to all users
+            calculadoraToolStripMenuItem.Visible = true;
+            
+            // User Management - Admin only
+            // Note: You'll need to add a menu item for user management and configure it here
+            // usuariosToolStripMenuItem.Visible = UserSession.IsAdmin();
+            
+            // Reports - Sales, PastryChef, and Admin only
+            // Note: You'll need to add report menu items and configure them here
+        }
+
+        /// <summary>
+        /// Updates the form title with user information
+        /// </summary>
+        private void UpdateFormTitle()
+        {
+            var userName = UserSession.GetCurrentUserName();
+            var userRole = UserSession.GetRoleDisplayName(UserSession.GetCurrentUserRole());
+            this.Text = $"CakePrize - {userName} ({userRole})";
+        }
+
+        /// <summary>
+        /// Shows an access denied message
+        /// </summary>
+        private void ShowAccessDeniedMessage()
+        {
+            MessageBox.Show(
+                "No tiene permisos para acceder a esta función.",
+                "Acceso Denegado",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
         }
     }
 }

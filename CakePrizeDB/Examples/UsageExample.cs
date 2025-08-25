@@ -36,7 +36,7 @@ namespace CakePrizeDB.Examples
 
                 // 5. Example: Create a new unit type
                 Console.WriteLine("\n=== Creating New Unit Type ===");
-                var newUnitType = unitTypeService.CreateUnitType("Kilograms", "kg");
+                var newUnitType = unitTypeService.CreateUnitType("Kilograms", "kg", "Marco", "Marco");
                 Console.WriteLine($"Created: ID: {newUnitType.Id}, Name: {newUnitType.Name}, Acronym: {newUnitType.Acronym}");
 
                 // 6. Example: Get unit type by ID
@@ -138,7 +138,7 @@ namespace CakePrizeDB.Examples
                 // Try to create a unit type with invalid data
                 try
                 {
-                    var invalidUnitType = service.CreateUnitType("", ""); // Empty name and acronym
+                    var invalidUnitType = service.CreateUnitType("", "", "Marco", "Marco"); // Empty name and acronym
                     Console.WriteLine("Created unit type with empty values (this might not be desired)");
                 }
                 catch (Exception ex)
