@@ -1,4 +1,4 @@
-using CakePrizeDB.Models;
+﻿using CakePrizeDB.Models;
 using CakePrizeDB.Repositories;
 using Microsoft.Data.SqlClient;
 
@@ -7,10 +7,9 @@ namespace CakePrizeDB.Services
     public class UnitTypeService
     {
         private readonly UnitTypeRepository _repository;
-
-        public UnitTypeService(SqlConnection connection)
+        public UnitTypeService(SqlConnection sqlConnection)
         {
-            _repository = new UnitTypeRepository(connection);
+            _repository = new UnitTypeRepository(sqlConnection);
         }
 
         /// <summary>
@@ -23,30 +22,34 @@ namespace CakePrizeDB.Services
         }
 
         /// <summary>
-        /// Gets a specific unit type by its ID
+        /// Gets a specific unitType by its ID
         /// </summary>
-        /// <param name="id">The GUID of the unit type</param>
-        /// <returns>The unit type if found, null otherwise</returns>
+        /// <param name="id">The GUID of the unitType</param>
+        /// <returns>The unitType if found, null otherwise</returns>
         public UnitTypeModel? GetUnitTypeById(Guid id)
         {
             return _repository.GetById(id);
         }
 
         /// <summary>
-        /// Creates a new unit type
+        /// Creates a new unitType
         /// </summary>
-        /// <param name="name">The name of the unit type (e.g., "Grams", "Milliliters")</param>
+        /// <param name="name">The name of the unitType (e.g., "Miligram", "Kilogram")</param>
         /// <param name="acronym">The acronym (e.g., "g", "ml")</param>
         /// <returns>The created unit type with generated ID</returns>
-        public UnitTypeModel CreateUnitType(string name, string acronym)
+        public UnitTypeModel CreateUnitType(string name, string acronym, string createdUser, string modifiedUser)
         {
             var unitType = new UnitTypeModel
             {
                 Id = Guid.NewGuid(),
                 Name = name,
-                Acronym = acronym
+                Acronym = acronym,
+                CreatedDate = DateTime.Now,
+                CreatedUser = createdUser,
+                ModifiedDate = DateTime.Now,
+                ModifiedUser = modifiedUser
             };
-
+            
             _repository.Insert(unitType);
             return unitType;
         }
