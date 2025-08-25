@@ -30,6 +30,9 @@ namespace CakePrizeView.Forms.Menu
 
             LoadUsers();
             SetupEventHandlers();
+            
+            // Set up auto-maximize
+            FormMaximizeHelper.SetupAutoMaximize(this);
         }
 
         private void LoadUsers()

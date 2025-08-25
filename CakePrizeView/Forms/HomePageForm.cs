@@ -3,6 +3,7 @@ using CakePrizeView.Forms.ingredients;
 using CakePrizeView.Forms.Menu.Products;
 using CakePrizeView.Utils;
 using Microsoft.Data.SqlClient;
+using System.Collections.Generic;
 
 namespace CakePrizeView
 {
@@ -10,6 +11,10 @@ namespace CakePrizeView
     {
         private Form previousForm;
         private SqlConnection sqlConnection;
+        
+        // Store initial form size for relative positioning
+        private Size initialFormSize;
+        private Dictionary<Control, Rectangle> initialControlBounds;
 
         public FormHomePageForm(Form previousForm, SqlConnection sqlConnection)
         {
@@ -17,11 +22,20 @@ namespace CakePrizeView
             this.previousForm = previousForm;
             this.sqlConnection = sqlConnection;
             
+            // Add resize event handler
+            this.Resize += HomePageForm_Resize;
+            
+            // Store initial positions for relative positioning
+            StoreInitialPositions();
+            
             // Configure menu visibility based on user permissions
             ConfigureMenuPermissions();
             
             // Update form title with user information
             UpdateFormTitle();
+            
+            // Set up auto-maximize
+            FormMaximizeHelper.SetupAutoMaximize(this);
         }
 
         private void FormMainForm_FormClosed(object sender, FormClosedEventArgs e)
@@ -142,6 +156,90 @@ namespace CakePrizeView
                 "Acceso Denegado",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Warning);
+        }
+
+        /// <summary>
+        /// Stores initial positions and sizes of controls for relative positioning
+        /// </summary>
+        private void StoreInitialPositions()
+        {
+            initialFormSize = this.Size;
+            initialControlBounds = new Dictionary<Control, Rectangle>();
+            
+            // Store initial bounds for all controls that need responsive positioning
+            StoreControlBounds(btnClose);
+            StoreControlBounds(btnLogout);
+        }
+
+        /// <summary>
+        /// Recursively stores bounds for a control and its children
+        /// </summary>
+        private void StoreControlBounds(Control control)
+        {
+            if (control != null)
+            {
+                initialControlBounds[control] = control.Bounds;
+                
+                // Store bounds for child controls
+                foreach (Control child in control.Controls)
+                {
+                    StoreControlBounds(child);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Handles form resize to adjust control positions and sizes
+        /// </summary>
+        private void HomePageForm_Resize(object sender, EventArgs e)
+        {
+            if (initialControlBounds == null || initialFormSize.Width == 0 || initialFormSize.Height == 0)
+                return;
+
+            // Calculate scaling factors
+            float scaleX = (float)this.Width / initialFormSize.Width;
+            float scaleY = (float)this.Height / initialFormSize.Height;
+
+            // Adjust control positions and sizes
+            AdjustControlLayout(btnClose, scaleX, scaleY);
+            AdjustControlLayout(btnLogout, scaleX, scaleY);
+            
+            // Ensure minimum spacing between controls
+            EnsureMinimumSpacing();
+        }
+
+        /// <summary>
+        /// Adjusts a control's position and size based on scaling factors
+        /// </summary>
+        private void AdjustControlLayout(Control control, float scaleX, float scaleY)
+        {
+            if (control != null && initialControlBounds.ContainsKey(control))
+            {
+                Rectangle initialBounds = initialControlBounds[control];
+                
+                // Calculate new position and size
+                int newX = (int)(initialBounds.X * scaleX);
+                int newY = (int)(initialBounds.Y * scaleY);
+                int newWidth = (int)(initialBounds.Width * scaleX);
+                int newHeight = (int)(initialBounds.Height * scaleY);
+                
+                // Apply new bounds
+                control.Bounds = new Rectangle(newX, newY, newWidth, newHeight);
+            }
+        }
+
+        /// <summary>
+        /// Ensures minimum spacing between controls
+        /// </summary>
+        private void EnsureMinimumSpacing()
+        {
+            const int minSpacing = 10;
+            
+            // Ensure minimum spacing between logout and close buttons
+            if (btnLogout.Right + minSpacing > btnClose.Left)
+            {
+                btnClose.Left = btnLogout.Right + minSpacing;
+            }
         }
     }
 }

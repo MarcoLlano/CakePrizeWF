@@ -1,5 +1,6 @@
 ﻿using CakePrizeDB.Services;
 using Microsoft.Data.SqlClient;
+using CakePrizeView.Utils;
 
 namespace CakePrizeView.Forms.ingredients
 {
@@ -17,6 +18,9 @@ namespace CakePrizeView.Forms.ingredients
             unitTypeService = new UnitTypeService(sqlConnection);
             brandService = new BrandService(sqlConnection);
             ingredientService = new IngredientService(sqlConnection);
+            
+            // Set up auto-maximize
+            FormMaximizeHelper.SetupAutoMaximize(this);
         }
 
         private void FrmIngredients_Load(object sender, EventArgs e)

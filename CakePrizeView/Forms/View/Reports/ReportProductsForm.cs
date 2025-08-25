@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using CakePrizeView.Utils;
 
 namespace CakePrizeView.Forms.View.Reports
 {
@@ -15,6 +16,9 @@ namespace CakePrizeView.Forms.View.Reports
         public ReportProductsForm()
         {
             InitializeComponent();
+            
+            // Set up auto-maximize
+            FormMaximizeHelper.SetupAutoMaximize(this);
         }
     }
 }
