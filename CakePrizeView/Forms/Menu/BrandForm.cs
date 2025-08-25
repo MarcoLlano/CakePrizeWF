@@ -93,16 +93,7 @@ namespace CakePrizeView.Forms.ingredients
         /// </summary>
         private void StoreControlBounds(Control control)
         {
-            if (control != null)
-            {
-                initialControlBounds[control] = control.Bounds;
-                
-                // Store bounds for child controls
-                foreach (Control child in control.Controls)
-                {
-                    StoreControlBounds(child);
-                }
-            }
+            FormUtils.StoreControlBounds(control, initialControlBounds);
         }
 
         /// <summary>
@@ -135,19 +126,7 @@ namespace CakePrizeView.Forms.ingredients
         /// </summary>
         private void AdjustControlLayout(Control control, float scaleX, float scaleY)
         {
-            if (control != null && initialControlBounds.ContainsKey(control))
-            {
-                Rectangle initialBounds = initialControlBounds[control];
-                
-                // Calculate new position and size
-                int newX = (int)(initialBounds.X * scaleX);
-                int newY = (int)(initialBounds.Y * scaleY);
-                int newWidth = (int)(initialBounds.Width * scaleX);
-                int newHeight = (int)(initialBounds.Height * scaleY);
-                
-                // Apply new bounds
-                control.Bounds = new Rectangle(newX, newY, newWidth, newHeight);
-            }
+            FormUtils.AdjustControlLayout(control, scaleX, scaleY, initialControlBounds);
         }
 
         /// <summary>
@@ -155,19 +134,7 @@ namespace CakePrizeView.Forms.ingredients
         /// </summary>
         private void EnsureMinimumSpacing()
         {
-            const int minSpacing = 10;
-            
-            // Ensure minimum spacing between back and close buttons
-            if (btnBack.Right + minSpacing > btnClose.Left)
-            {
-                btnClose.Left = btnBack.Right + minSpacing;
-            }
-            
-            // Ensure minimum spacing between save and clear buttons
-            if (btnSaveBrand.Right + minSpacing > btnClearBrandTexts.Left)
-            {
-                btnClearBrandTexts.Left = btnSaveBrand.Right + minSpacing;
-            }
+            FormUtils.EnsureMinimumSpacing(btnBack, btnClose, btnSaveBrand, btnClearBrandTexts);
         }
     }
 }

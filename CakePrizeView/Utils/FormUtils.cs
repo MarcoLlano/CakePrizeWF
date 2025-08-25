@@ -61,5 +61,53 @@ namespace CakePrizeView.Utils
             PlIngredientRowPanel.TabIndex = 11;
             return PlIngredientRowPanel;
         }
+
+        public static void AdjustControlLayout(Control control, float scaleX, float scaleY, Dictionary<Control, Rectangle> initialControlBounds)
+        {
+            if (control != null && initialControlBounds.ContainsKey(control))
+            {
+                Rectangle initialBounds = initialControlBounds[control];
+
+                // Calculate new position and size
+                int newX = (int)(initialBounds.X * scaleX);
+                int newY = (int)(initialBounds.Y * scaleY);
+                int newWidth = (int)(initialBounds.Width * scaleX);
+                int newHeight = (int)(initialBounds.Height * scaleY);
+
+                // Apply new bounds
+                control.Bounds = new Rectangle(newX, newY, newWidth, newHeight);
+            }
+        }
+
+        public static void EnsureMinimumSpacing(Control control1, Control control2, Control control3, Control control4)
+        {
+            int minSpacing = 10;
+
+            // Ensure minimum spacing between back and close buttons
+            if (control1.Right + minSpacing > control2.Left)
+            {
+                control2.Left = control1.Right + minSpacing;
+            }
+
+            // Ensure minimum spacing between save and clear buttons
+            if (control3.Right + minSpacing > control4.Left)
+            {
+                control4.Left = control3.Right + minSpacing;
+            }
+        }
+
+        public static void StoreControlBounds(Control control, Dictionary<Control, Rectangle> initialControlBounds)
+        {
+            if (control != null)
+            {
+                initialControlBounds[control] = control.Bounds;
+
+                // Store bounds for child controls
+                foreach (Control child in control.Controls)
+                {
+                    StoreControlBounds(child, initialControlBounds);
+                }
+            }
+        }
     }
 }

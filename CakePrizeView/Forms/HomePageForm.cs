@@ -1,5 +1,6 @@
 ﻿using CakePrizeView.Forms;
 using CakePrizeView.Forms.ingredients;
+using CakePrizeView.Forms.Menu;
 using CakePrizeView.Forms.Menu.Products;
 using CakePrizeView.Utils;
 using Microsoft.Data.SqlClient;
@@ -11,7 +12,7 @@ namespace CakePrizeView
     {
         private Form previousForm;
         private SqlConnection sqlConnection;
-        
+
         // Store initial form size for relative positioning
         private Size initialFormSize;
         private Dictionary<Control, Rectangle> initialControlBounds;
@@ -21,19 +22,19 @@ namespace CakePrizeView
             InitializeComponent();
             this.previousForm = previousForm;
             this.sqlConnection = sqlConnection;
-            
+
             // Add resize event handler
             this.Resize += HomePageForm_Resize;
-            
+
             // Store initial positions for relative positioning
             StoreInitialPositions();
-            
+
             // Configure menu visibility based on user permissions
             ConfigureMenuPermissions();
-            
+
             // Update form title with user information
             UpdateFormTitle();
-            
+
             // Set up auto-maximize
             FormMaximizeHelper.SetupAutoMaximize(this);
         }
@@ -47,7 +48,7 @@ namespace CakePrizeView
         {
             // Clear the user session
             UserSession.ClearSession();
-            
+
             Hide();
             previousForm = new FrmLoginForm();
             previousForm.Show();
@@ -108,6 +109,13 @@ namespace CakePrizeView
             productPromosForm.Show();
         }
 
+        private void usuariosToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Hide();
+            UserManagementForm userManagementForm = new UserManagementForm(FindForm() ?? new ErrorNotFoundForm(), sqlConnection);
+            userManagementForm.Show();
+        }
+
         /// <summary>
         /// Configures menu visibility based on user permissions
         /// </summary>
@@ -115,23 +123,23 @@ namespace CakePrizeView
         {
             // Ingredients management - PastryChef and Admin only
             ingredientesToolStripMenuItem.Visible = UserSession.CanManageIngredients();
-            
+
             // Brand management - PastryChef and Admin only
             marcasToolStripMenuItem.Visible = UserSession.CanManageBrands();
-            
+
             // Product management - PastryChef and Admin only
             unidadToolStripMenuItem.Visible = UserSession.CanManageProducts();
             armarCombosToolStripMenuItem.Visible = UserSession.CanManageProducts();
             combosEspecialesToolStripMenuItem.Visible = UserSession.CanManageProducts();
             promocionesToolStripMenuItem.Visible = UserSession.CanManageProducts();
-            
+
             // Calculator - Available to all users
             calculadoraToolStripMenuItem.Visible = true;
-            
+
             // User Management - Admin only
             // Note: You'll need to add a menu item for user management and configure it here
             // usuariosToolStripMenuItem.Visible = UserSession.IsAdmin();
-            
+
             // Reports - Sales, PastryChef, and Admin only
             // Note: You'll need to add report menu items and configure them here
         }
@@ -165,7 +173,7 @@ namespace CakePrizeView
         {
             initialFormSize = this.Size;
             initialControlBounds = new Dictionary<Control, Rectangle>();
-            
+
             // Store initial bounds for all controls that need responsive positioning
             StoreControlBounds(btnClose);
             StoreControlBounds(btnLogout);
@@ -179,7 +187,7 @@ namespace CakePrizeView
             if (control != null)
             {
                 initialControlBounds[control] = control.Bounds;
-                
+
                 // Store bounds for child controls
                 foreach (Control child in control.Controls)
                 {
@@ -203,7 +211,7 @@ namespace CakePrizeView
             // Adjust control positions and sizes
             AdjustControlLayout(btnClose, scaleX, scaleY);
             AdjustControlLayout(btnLogout, scaleX, scaleY);
-            
+
             // Ensure minimum spacing between controls
             EnsureMinimumSpacing();
         }
@@ -216,13 +224,13 @@ namespace CakePrizeView
             if (control != null && initialControlBounds.ContainsKey(control))
             {
                 Rectangle initialBounds = initialControlBounds[control];
-                
+
                 // Calculate new position and size
                 int newX = (int)(initialBounds.X * scaleX);
                 int newY = (int)(initialBounds.Y * scaleY);
                 int newWidth = (int)(initialBounds.Width * scaleX);
                 int newHeight = (int)(initialBounds.Height * scaleY);
-                
+
                 // Apply new bounds
                 control.Bounds = new Rectangle(newX, newY, newWidth, newHeight);
             }
@@ -234,7 +242,7 @@ namespace CakePrizeView
         private void EnsureMinimumSpacing()
         {
             const int minSpacing = 10;
-            
+
             // Ensure minimum spacing between logout and close buttons
             if (btnLogout.Right + minSpacing > btnClose.Left)
             {

@@ -8,7 +8,7 @@ namespace CakePrizeView.Forms.Menu.Products
     {
         private Form previousForm;
         private SqlConnection sqlConnection;
-        
+
         // Store initial form size for relative positioning
         private Size initialFormSize;
         private Dictionary<Control, Rectangle> initialControlBounds;
@@ -18,16 +18,17 @@ namespace CakePrizeView.Forms.Menu.Products
             this.previousForm = previousForm;
             this.sqlConnection = sqlConnection;
             InitializeComponent();
-            
+
             // Add resize event handler
             this.Resize += ProductForm_Resize;
-            
+
             // Store initial positions for relative positioning
             StoreInitialPositions();
-            
+
             // Set up auto-maximize
             FormMaximizeHelper.SetupAutoMaximize(this);
         }
+
         private void FrmProduct_Load(object sender, EventArgs e)
         {
             //GetAllBrands(sender, e);
@@ -58,6 +59,8 @@ namespace CakePrizeView.Forms.Menu.Products
             DialogResult dialogResult = ofd.ShowDialog();
             if (dialogResult == DialogResult.OK)
             {
+
+                //TODO: Update this
                 txtProductImage.Text = ofd.FileName;
                 string filePath = ofd.Filter;
                 int filePath1 = ofd.FilterIndex;
@@ -73,7 +76,7 @@ namespace CakePrizeView.Forms.Menu.Products
         {
             initialFormSize = this.Size;
             initialControlBounds = new Dictionary<Control, Rectangle>();
-            
+
             // Store initial bounds for all controls that need responsive positioning
             StoreControlBounds(panel1);
             StoreControlBounds(LblProductTitle);
@@ -90,16 +93,7 @@ namespace CakePrizeView.Forms.Menu.Products
         /// </summary>
         private void StoreControlBounds(Control control)
         {
-            if (control != null)
-            {
-                initialControlBounds[control] = control.Bounds;
-                
-                // Store bounds for child controls
-                foreach (Control child in control.Controls)
-                {
-                    StoreControlBounds(child);
-                }
-            }
+            FormUtils.StoreControlBounds(control, initialControlBounds);
         }
 
         /// <summary>
@@ -115,6 +109,22 @@ namespace CakePrizeView.Forms.Menu.Products
             float scaleY = (float)this.Height / initialFormSize.Height;
 
             // Adjust control positions and sizes
+            AdjustControlLayout(lblPortionsPerPrep, scaleX, scaleY);
+            AdjustControlLayout(lblProdComments, scaleX, scaleY);
+            AdjustControlLayout(lblProdIngreQty, scaleX, scaleY);
+            AdjustControlLayout(lblProductImage, scaleX, scaleY);
+            AdjustControlLayout(lblProductIngredient, scaleX, scaleY);
+            AdjustControlLayout(lblProductName, scaleX, scaleY);
+            AdjustControlLayout(lblProductSize, scaleX, scaleY);
+            AdjustControlLayout(lblProductType, scaleX, scaleY);
+            AdjustControlLayout(txtProductImage, scaleX, scaleY);
+            AdjustControlLayout(txtProductIngrQty, scaleX, scaleY);
+            AdjustControlLayout(txtProductName, scaleX, scaleY);
+            AdjustControlLayout(txtProductPortionsPerPrep, scaleX, scaleY);
+            AdjustControlLayout(cbProductIngredient, scaleX, scaleY);
+            AdjustControlLayout(cbProductSize, scaleX, scaleY);
+            AdjustControlLayout(cbProductType, scaleX, scaleY);
+            AdjustControlLayout(btnProdAddIngredientToList, scaleX, scaleY);
             AdjustControlLayout(panel1, scaleX, scaleY);
             AdjustControlLayout(LblProductTitle, scaleX, scaleY);
             AdjustControlLayout(btnCloseProduct, scaleX, scaleY);
@@ -123,10 +133,10 @@ namespace CakePrizeView.Forms.Menu.Products
             AdjustControlLayout(richTBProdComments, scaleX, scaleY);
             AdjustControlLayout(btnSaveProduct, scaleX, scaleY);
             AdjustControlLayout(btnClearProductTexts, scaleX, scaleY);
-            
+
             // Ensure minimum spacing between controls
             EnsureMinimumSpacing();
-            
+
             // Update DataGridView column widths proportionally
             UpdateDataGridViewColumns();
         }
@@ -136,19 +146,7 @@ namespace CakePrizeView.Forms.Menu.Products
         /// </summary>
         private void AdjustControlLayout(Control control, float scaleX, float scaleY)
         {
-            if (control != null && initialControlBounds.ContainsKey(control))
-            {
-                Rectangle initialBounds = initialControlBounds[control];
-                
-                // Calculate new position and size
-                int newX = (int)(initialBounds.X * scaleX);
-                int newY = (int)(initialBounds.Y * scaleY);
-                int newWidth = (int)(initialBounds.Width * scaleX);
-                int newHeight = (int)(initialBounds.Height * scaleY);
-                
-                // Apply new bounds
-                control.Bounds = new Rectangle(newX, newY, newWidth, newHeight);
-            }
+            FormUtils.AdjustControlLayout(control, scaleX, scaleY, initialControlBounds);  
         }
 
         /// <summary>
@@ -156,20 +154,7 @@ namespace CakePrizeView.Forms.Menu.Products
         /// </summary>
         private void EnsureMinimumSpacing()
         {
-            const int minSpacing = 10;
-            
-            // Ensure minimum spacing between form elements
-            if (btnBackProduct.Right + minSpacing > btnCloseProduct.Left)
-            {
-                btnCloseProduct.Left = btnBackProduct.Right + minSpacing;
-            }
-            
-            // Ensure minimum spacing in panel
-            if (richTBProdComments.Bottom + minSpacing > btnSaveProduct.Top)
-            {
-                btnSaveProduct.Top = richTBProdComments.Bottom + minSpacing;
-                btnClearProductTexts.Top = btnSaveProduct.Top;
-            }
+            FormUtils.EnsureMinimumSpacing(btnBackProduct, btnCloseProduct, richTBProdComments, btnSaveProduct);
         }
 
         /// <summary>
@@ -180,7 +165,7 @@ namespace CakePrizeView.Forms.Menu.Products
             if (gvProductIngredientList != null && gvProductIngredientList.Columns.Count > 0)
             {
                 int totalWidth = gvProductIngredientList.Width - 20; // Account for scrollbar
-                
+
                 // Set proportional widths (60% for ingredient, 40% for quantity)
                 if (gvProductIngredientList.Columns.Count >= 2)
                 {
@@ -188,6 +173,11 @@ namespace CakePrizeView.Forms.Menu.Products
                     gvProductIngredientList.Columns[1].Width = (int)(totalWidth * 0.4); // Quantity column
                 }
             }
+        }
+
+        private void btnSaveProduct_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }
