@@ -69,7 +69,7 @@ namespace CakePrizeView
         private void unidadToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Hide();
-            ProductUnitForm productUnitForm = new ProductUnitForm(FindForm() ?? new ErrorNotFoundForm(), sqlConnection);
+            ProductForm productUnitForm = new ProductForm(FindForm() ?? new ErrorNotFoundForm(), sqlConnection);
             productUnitForm.Show();
         }
 
