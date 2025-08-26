@@ -116,6 +116,13 @@ namespace CakePrizeView
             userManagementForm.Show();
         }
 
+        private void tiposDeProductosToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Hide();
+            ProductTypeForm prodTypeFrm = new ProductTypeForm(FindForm() ?? new ErrorNotFoundForm(), sqlConnection);
+            prodTypeFrm.Show();
+        }
+
         /// <summary>
         /// Configures menu visibility based on user permissions
         /// </summary>

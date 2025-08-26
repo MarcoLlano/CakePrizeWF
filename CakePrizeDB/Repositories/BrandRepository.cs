@@ -25,7 +25,6 @@ namespace CakePrizeDB.Repositories
 
             while (reader.Read())
             {
-                var t1 = reader.GetColumnSchema();
                 brands.Add(new BrandModel
                 {
                     Id = reader.GetGuid(0),

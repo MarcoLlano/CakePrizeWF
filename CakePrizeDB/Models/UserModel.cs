@@ -25,3 +25,4 @@ namespace CakePrizeDB.Models
         public DateTime? LastLoginDate { get; set; }
     }
 }
+

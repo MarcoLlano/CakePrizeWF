@@ -1,14 +1,6 @@
-﻿using CakePrizeView.Utils;
+﻿using CakePrizeDB.Services;
+using CakePrizeView.Utils;
 using Microsoft.Data.SqlClient;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 
 namespace CakePrizeView.Forms.Menu.Products
 {
@@ -16,6 +8,7 @@ namespace CakePrizeView.Forms.Menu.Products
     {
         private Form previousForm;
         private SqlConnection sqlConnection;
+        private ProductTypeService prodTypeService;
 
         // Store initial form size for relative positioning
         private Size initialFormSize;
@@ -23,9 +16,10 @@ namespace CakePrizeView.Forms.Menu.Products
 
         public ProductTypeForm(Form previousForm, SqlConnection sqlConnection)
         {
-            this.previousForm = previousForm;
-            this.sqlConnection = sqlConnection;
+            initialControlBounds = new Dictionary<Control, Rectangle>();
             InitializeComponent();
+            this.previousForm = previousForm;
+            prodTypeService = new ProductTypeService(sqlConnection);
 
             // Add resize event handler
             this.Resize += ProductTypeForm_Resize;
@@ -46,7 +40,15 @@ namespace CakePrizeView.Forms.Menu.Products
             initialControlBounds = new Dictionary<Control, Rectangle>();
 
             // Store initial bounds for all controls that need responsive positioning
-            //StoreControlBounds(panel1);
+            StoreControlBounds(pnlProdType);
+            StoreControlBounds(btnClearProdType);
+            StoreControlBounds(btnSaveProdType);
+            StoreControlBounds(btnClose);
+            StoreControlBounds(btnBack);
+            StoreControlBounds(lblProdTypeName);
+            StoreControlBounds(txtProdTypeName);
+            StoreControlBounds(LblProdTypeTitle);
+            StoreControlBounds(lblSaveProdTypeStatus);
         }
 
         /// <summary>
@@ -60,7 +62,7 @@ namespace CakePrizeView.Forms.Menu.Products
         /// <summary>
         /// Handles form resize to adjust control positions and sizes
         /// </summary>
-        private void ProductTypeForm_Resize(object sender, EventArgs e)
+        private void ProductTypeForm_Resize(object? sender, EventArgs e)
         {
             if (initialControlBounds == null || initialFormSize.Width == 0 || initialFormSize.Height == 0)
                 return;
@@ -70,7 +72,15 @@ namespace CakePrizeView.Forms.Menu.Products
             float scaleY = (float)this.Height / initialFormSize.Height;
 
             // Adjust control positions and sizes
-            //AdjustControlLayout(lblPortionsPerPrep, scaleX, scaleY);
+            AdjustControlLayout(pnlProdType, scaleX, scaleY);
+            AdjustControlLayout(btnClearProdType, scaleX, scaleY);
+            AdjustControlLayout(btnSaveProdType, scaleX, scaleY);
+            AdjustControlLayout(btnClose, scaleX, scaleY);
+            AdjustControlLayout(btnBack, scaleX, scaleY);
+            AdjustControlLayout(lblProdTypeName, scaleX, scaleY);
+            AdjustControlLayout(txtProdTypeName, scaleX, scaleY);
+            AdjustControlLayout(LblProdTypeTitle, scaleX, scaleY);
+            AdjustControlLayout(lblSaveProdTypeStatus, scaleX, scaleY);
 
             // Ensure minimum spacing between controls
             EnsureMinimumSpacing();
@@ -89,22 +99,41 @@ namespace CakePrizeView.Forms.Menu.Products
         /// </summary>
         private void EnsureMinimumSpacing()
         {
-            //FormUtils.EnsureMinimumSpacing()
-            /*
-            const int minSpacing = 10;
+            FormUtils.EnsureMinimumSpacing(btnBack, btnClose, btnSaveProdType, btnClearProdType);
+        }
 
-            // Ensure minimum spacing between form elements
-            if (btnBackProduct.Right + minSpacing > btnCloseProduct.Left)
+        private void GetAllProductTypes(object sender, EventArgs e)
+        {
+            TSCbProdTypeList.Items.Clear();
+            foreach (var item in prodTypeService.GetAllProductTypes())
             {
-                btnCloseProduct.Left = btnBackProduct.Right + minSpacing;
+                TSCbProdTypeList.Items.Add($"{item.Name}");
             }
+        }
 
-            // Ensure minimum spacing in panel
-            if (richTBProdComments.Bottom + minSpacing > btnSaveProduct.Top)
-            {
-                btnSaveProduct.Top = richTBProdComments.Bottom + minSpacing;
-                btnClearProductTexts.Top = btnSaveProduct.Top;
-            }*/
+        private void FrmProdType_Load(object sender, EventArgs e)
+        {
+            GetAllProductTypes(sender, e);
+        }
+
+        private void btnBack_Click(object sender, EventArgs e)
+        {
+            Close();
+            previousForm.Show();
+        }
+
+        private void btnClose_Click(object sender, EventArgs e)
+        {
+            Close();
+            previousForm.Close();
+        }
+
+        private void btnSaveProdType_Click(object sender, EventArgs e)
+        {
+            string temp = txtProdTypeName.Text;
+            var brand = prodTypeService.CreateProductType(txtProdTypeName.Text, "Marco Llano", "Marco Llano");
+            txtProdTypeName.Text = string.Empty;
+            lblSaveProdTypeStatus.Text = $"El producto {temp} se registro correctamente!";
         }
     }
 }

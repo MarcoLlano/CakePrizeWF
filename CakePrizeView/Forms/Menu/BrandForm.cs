@@ -1,6 +1,5 @@
 ﻿using CakePrizeDB.Services;
 using Microsoft.Data.SqlClient;
-using System.Collections.Generic;
 using CakePrizeView.Utils;
 
 namespace CakePrizeView.Forms.ingredients
@@ -16,12 +15,13 @@ namespace CakePrizeView.Forms.ingredients
 
         public BrandForm(Form previousForm, SqlConnection sqlConnection)
         {
+            initialControlBounds = new Dictionary<Control, Rectangle>();
             InitializeComponent();
             this.previousForm = previousForm;
             brandService = new BrandService(sqlConnection);
             
             // Add resize event handler
-            this.Resize += BrandForm_Resize;
+            Resize += BrandForm_Resize;
             
             // Store initial positions for relative positioning
             StoreInitialPositions();
@@ -99,7 +99,7 @@ namespace CakePrizeView.Forms.ingredients
         /// <summary>
         /// Handles form resize to adjust control positions and sizes
         /// </summary>
-        private void BrandForm_Resize(object sender, EventArgs e)
+        private void BrandForm_Resize(object? sender, EventArgs e)
         {
             if (initialControlBounds == null || initialFormSize.Width == 0 || initialFormSize.Height == 0)
                 return;

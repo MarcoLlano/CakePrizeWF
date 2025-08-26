@@ -1,13 +1,15 @@
-﻿using Microsoft.Data.SqlClient;
-using System.Collections.Generic;
+﻿using CakePrizeDB.Services;
 using CakePrizeView.Utils;
+using Microsoft.Data.SqlClient;
+using System.Collections.Generic;
 
 namespace CakePrizeView.Forms.Menu.Products
 {
     public partial class ProductForm : Form
     {
         private Form previousForm;
-        private SqlConnection sqlConnection;
+        private ProductTypeService prodTypeService;
+        private IngredientService ingredientService;
 
         // Store initial form size for relative positioning
         private Size initialFormSize;
@@ -16,7 +18,9 @@ namespace CakePrizeView.Forms.Menu.Products
         public ProductForm(Form previousForm, SqlConnection sqlConnection)
         {
             this.previousForm = previousForm;
-            this.sqlConnection = sqlConnection;
+            prodTypeService = new ProductTypeService(sqlConnection);
+            ingredientService = new IngredientService(sqlConnection);
+            initialControlBounds = new Dictionary<Control, Rectangle>();
             InitializeComponent();
 
             // Add resize event handler
@@ -29,9 +33,26 @@ namespace CakePrizeView.Forms.Menu.Products
             FormMaximizeHelper.SetupAutoMaximize(this);
         }
 
+        private void GetAllProductTypes(object sender, EventArgs e)
+        {
+            foreach (var item in prodTypeService.GetAllProductTypes())
+            {
+                cbProductType.Items.Add($"{item.Name}");
+            }
+        }
+
+        private void GetAllIngredients(object sender, EventArgs e)
+        {
+            foreach (var item in ingredientService.GetAllIngredients())
+            {
+                cbProductIngredient.Items.Add($"{item.Name}");
+            }
+        }
+
         private void FrmProduct_Load(object sender, EventArgs e)
         {
-            //GetAllBrands(sender, e);
+            GetAllProductTypes(sender, e);
+            GetAllIngredients(sender, e);
         }
 
         private void btnBackProductUnitForm_Click(object sender, EventArgs e)
@@ -99,7 +120,7 @@ namespace CakePrizeView.Forms.Menu.Products
         /// <summary>
         /// Handles form resize to adjust control positions and sizes
         /// </summary>
-        private void ProductForm_Resize(object sender, EventArgs e)
+        private void ProductForm_Resize(object? sender, EventArgs e)
         {
             if (initialControlBounds == null || initialFormSize.Width == 0 || initialFormSize.Height == 0)
                 return;
@@ -154,7 +175,7 @@ namespace CakePrizeView.Forms.Menu.Products
         /// </summary>
         private void EnsureMinimumSpacing()
         {
-            FormUtils.EnsureMinimumSpacing(btnBackProduct, btnCloseProduct, richTBProdComments, btnSaveProduct);
+            FormUtils.EnsureMinimumSpacing(btnBackProduct, btnCloseProduct, btnClearProductTexts, btnSaveProduct);
         }
 
         /// <summary>
