@@ -1,16 +1,34 @@
 using CakePrize.libs.utils;
 using CakePrizeView.Utils;
+using Microsoft.Data.SqlClient;
+using System.Collections.Generic;
 
 namespace CakePrizeView
 {
-    public partial class FormCupcake : Form
+    public partial class CalculatorForm : Form
     {
         private Form previousForm;
+        private SqlConnection sqlConnection;
         private int data;
-        public FormCupcake(Form form)
+        
+        // Store initial form size for relative positioning
+        private Size initialFormSize;
+        private Dictionary<Control, Rectangle> initialControlBounds;
+
+        public CalculatorForm(Form previousForm, SqlConnection sqlConnection)
         {
             InitializeComponent();
-            previousForm = form;
+            this.previousForm = previousForm;
+            this.sqlConnection = sqlConnection;
+            
+            // Add resize event handler
+            this.Resize += CalculatorForm_Resize;
+            
+            // Store initial positions for relative positioning
+            StoreInitialPositions();
+            
+            // Set up auto-maximize
+            FormMaximizeHelper.SetupAutoMaximize(this);
         }
 
         private void UpdateTotalLabel()
@@ -199,6 +217,114 @@ namespace CakePrizeView
                     break;
                 default:
                     break;
+            }
+        }
+
+        /// <summary>
+        /// Stores initial positions and sizes of controls for relative positioning
+        /// </summary>
+        private void StoreInitialPositions()
+        {
+            initialFormSize = this.Size;
+            initialControlBounds = new Dictionary<Control, Rectangle>();
+            
+            // Store initial bounds for all controls that need responsive positioning
+            StoreControlBounds(picCupcake);
+            StoreControlBounds(LblCakeTitle);
+            StoreControlBounds(BtnBack);
+            StoreControlBounds(BtnClose);
+            StoreControlBounds(PnlIngredients);
+            StoreControlBounds(panel4);
+            StoreControlBounds(LblPrizeTypeTitle);
+            StoreControlBounds(label3);
+        }
+
+        /// <summary>
+        /// Recursively stores bounds for a control and its children
+        /// </summary>
+        private void StoreControlBounds(Control control)
+        {
+            if (control != null)
+            {
+                initialControlBounds[control] = control.Bounds;
+                
+                // Store bounds for child controls
+                foreach (Control child in control.Controls)
+                {
+                    StoreControlBounds(child);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Handles form resize to adjust control positions and sizes
+        /// </summary>
+        private void CalculatorForm_Resize(object sender, EventArgs e)
+        {
+            if (initialControlBounds == null || initialFormSize.Width == 0 || initialFormSize.Height == 0)
+                return;
+
+            // Calculate scaling factors
+            float scaleX = (float)this.Width / initialFormSize.Width;
+            float scaleY = (float)this.Height / initialFormSize.Height;
+
+            // Adjust control positions and sizes
+            AdjustControlLayout(picCupcake, scaleX, scaleY);
+            AdjustControlLayout(LblCakeTitle, scaleX, scaleY);
+            AdjustControlLayout(BtnBack, scaleX, scaleY);
+            AdjustControlLayout(BtnClose, scaleX, scaleY);
+            AdjustControlLayout(PnlIngredients, scaleX, scaleY);
+            AdjustControlLayout(panel4, scaleX, scaleY);
+            AdjustControlLayout(LblPrizeTypeTitle, scaleX, scaleY);
+            AdjustControlLayout(label3, scaleX, scaleY);
+            
+            // Ensure minimum spacing between controls
+            EnsureMinimumSpacing();
+        }
+
+        /// <summary>
+        /// Adjusts a control's position and size based on scaling factors
+        /// </summary>
+        private void AdjustControlLayout(Control control, float scaleX, float scaleY)
+        {
+            if (control != null && initialControlBounds.ContainsKey(control))
+            {
+                Rectangle initialBounds = initialControlBounds[control];
+                
+                // Calculate new position and size
+                int newX = (int)(initialBounds.X * scaleX);
+                int newY = (int)(initialBounds.Y * scaleY);
+                int newWidth = (int)(initialBounds.Width * scaleX);
+                int newHeight = (int)(initialBounds.Height * scaleY);
+                
+                // Apply new bounds
+                control.Bounds = new Rectangle(newX, newY, newWidth, newHeight);
+            }
+        }
+
+        /// <summary>
+        /// Ensures minimum spacing between controls
+        /// </summary>
+        private void EnsureMinimumSpacing()
+        {
+            const int minSpacing = 10;
+            
+            // Ensure minimum spacing between back and close buttons
+            if (BtnBack.Right + minSpacing > BtnClose.Left)
+            {
+                BtnClose.Left = BtnBack.Right + minSpacing;
+            }
+            
+            // Ensure minimum spacing between picture and ingredients panel
+            if (picCupcake.Right + minSpacing > PnlIngredients.Left)
+            {
+                PnlIngredients.Left = picCupcake.Right + minSpacing;
+            }
+            
+            // Ensure minimum spacing between ingredients panel and price panel
+            if (PnlIngredients.Right + minSpacing > panel4.Left)
+            {
+                panel4.Left = PnlIngredients.Right + minSpacing;
             }
         }
     }
