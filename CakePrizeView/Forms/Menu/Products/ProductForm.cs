@@ -289,6 +289,7 @@ namespace CakePrizeView.Forms.Menu.Products
                 if (newProd != null)
                 {
                     var newProdPhoto = LinkProductAndPhoto(sender, e, newProd.Id);
+                    LinkProductAndSize(sender, e, newProd.Id);
                     LinkProductAndIngredient(sender, e, newProd.Id);
                     
                     if (newProdPhoto != null)
@@ -315,7 +316,7 @@ namespace CakePrizeView.Forms.Menu.Products
         {
             var productTypeId = Guid.Parse(prodTypeService.GetAllProductTypes().Where(d => d.Name == cbProductType.Text)
                 .Select(t => t.Id).First().ToString() ?? string.Empty);
-            return productService.CreateProduct(productTypeId, txtProductName.Text + cbProductSize, "Marco Llano", "Marco Llano");
+            return productService.CreateProduct(productTypeId, txtProductName.Text + " - " + cbProductSize.Text, "Marco Llano", "Marco Llano");
         }
 
         /// <summary>
@@ -402,11 +403,10 @@ namespace CakePrizeView.Forms.Menu.Products
             }
         }
 
-        private ProductSizeModel LinkProductAndSize(object sender, EventArgs e)
+        private ProductSizeModel LinkProductAndSize(object sender, EventArgs e, Guid productId)
         {
             return productSizeService.CreateProductSize(
-                Guid.Parse(productService.GetAllProducts().Where(d => d.Name == txtProductName.Text)
-                .Select(t => t.Id).First().ToString() ?? string.Empty),
+                productId,
                 txtProductPortionsPerPrep.Text,
                 cbProductSize.Text,
                 richTBProdComments.Text,

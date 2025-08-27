@@ -69,8 +69,8 @@ namespace CakePrizeDB.Constants
         public static class ProductSize
         {
             public const string GetAll = "SELECT * FROM [CakePrize].[dbo].[product_size]";
-            public const string GetById = "SELECT * FROM [CakePrize].[dbo].[producttype] WHERE id = @ProductSizeId";
-            public const string Insert = "INSERT INTO [CakePrize].[dbo].[producttype] " +
+            public const string GetById = "SELECT * FROM [CakePrize].[dbo].[product_size] WHERE id = @ProductSizeId";
+            public const string Insert = "INSERT INTO [CakePrize].[dbo].[product_size] " +
                 "(id, product_id, product_portions, size, comments, created_date, created_user, modified_date, modified_user) VALUES " +
                 "(@Id, @ProductId, @ProductPortions, @Size, @Comments, @CreatedDate, @CreatedUser, @ModifiedDate, @ModifiedUser)";
         }
