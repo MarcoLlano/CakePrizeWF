@@ -17,18 +17,54 @@ namespace CakePrizeView.Forms
 
         public FrmLoginForm()
         {
-            InitializeComponent();
-            sqlConnection = DBUtils.OpenDBConnection();
-            userService = new UserService(sqlConnection);
-            
-            // Add resize event handler
-            this.Resize += LoginForm_Resize;
-            
-            // Store initial positions for relative positioning
-            StoreInitialPositions();
-            
-            // Set up auto-maximize
-            FormMaximizeHelper.SetupAutoMaximize(this);
+            try
+            {
+                InitializeComponent();
+                
+                // Initialize database connection with error handling
+                InitializeDatabaseConnection();
+                
+                // Add resize event handler
+                this.Resize += LoginForm_Resize;
+                
+                // Store initial positions for relative positioning
+                StoreInitialPositions();
+                
+                // Set up auto-maximize
+                FormMaximizeHelper.SetupAutoMaximize(this);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to initialize login form: {ex.Message}", 
+                    "Initialization Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                throw;
+            }
+        }
+        
+        /// <summary>
+        /// Initializes the database connection with proper error handling
+        /// </summary>
+        private void InitializeDatabaseConnection()
+        {
+            try
+            {
+                sqlConnection = DBUtils.OpenDBConnection();
+                userService = new UserService(sqlConnection);
+            }
+            catch (Exception ex)
+            {
+                // Show warning but don't throw - allow the form to load
+                MessageBox.Show(
+                    $"Database connection failed: {ex.Message}\n\n" +
+                    $"The application will continue but login functionality may not work.\n" +
+                    $"Please check your database configuration and try again.",
+                    "Database Connection Warning", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                
+                // Set to null so we can check later
+                sqlConnection = null;
+                userService = null;
+            }
         }
 
         private void Login_Click(object sender, EventArgs e)
@@ -59,6 +95,7 @@ namespace CakePrizeView.Forms
             string missingCredentialsText = "Usuario y contraseña son requeridos.";
             string invalidCredentialsText = "Usuario o contraseña incorrectos.";
             string disabledUserText = "Usuario desactivado. Contacte al administrador.";
+            string databaseErrorText = "Error de conexión a la base de datos. Intente nuevamente.";
 
             if (string.IsNullOrWhiteSpace(TxtUsername.Text) || string.IsNullOrWhiteSpace(TxtPassword.Text))
             {
@@ -66,28 +103,42 @@ namespace CakePrizeView.Forms
                 return;
             }
 
-            // First check if user exists and is active
-            var user = userService.GetUserByUsername(TxtUsername.Text);
-            if (user != null && !user.IsActive)
+            // Check if database connection is available
+            if (userService == null || sqlConnection == null)
             {
-                LblErrorUserPwd.Text = disabledUserText;
+                LblErrorUserPwd.Text = databaseErrorText;
                 return;
             }
 
-            var authenticatedUser = userService.AuthenticateUser(TxtUsername.Text, TxtPassword.Text);
-
-            if (authenticatedUser != null)
+            try
             {
-                // Set the user session
-                UserSession.SetCurrentUser(authenticatedUser);
+                // First check if user exists and is active
+                var user = userService.GetUserByUsername(TxtUsername.Text);
+                if (user != null && !user.IsActive)
+                {
+                    LblErrorUserPwd.Text = disabledUserText;
+                    return;
+                }
 
-                Hide();
-                FormHomePageForm formMainForm = new FormHomePageForm(FindForm() ?? new FrmLoginForm(), sqlConnection);
-                formMainForm.Show();
+                var authenticatedUser = userService.AuthenticateUser(TxtUsername.Text, TxtPassword.Text);
+
+                if (authenticatedUser != null)
+                {
+                    // Set the user session
+                    UserSession.SetCurrentUser(authenticatedUser);
+
+                    Hide();
+                    FormHomePageForm formMainForm = new FormHomePageForm(FindForm() ?? new FrmLoginForm(), sqlConnection);
+                    formMainForm.Show();
+                }
+                else
+                {
+                    LblErrorUserPwd.Text = invalidCredentialsText;
+                }
             }
-            else
+            catch (Exception ex)
             {
-                LblErrorUserPwd.Text = invalidCredentialsText;
+                LblErrorUserPwd.Text = $"Error de autenticación: {ex.Message}";
             }
         }
 

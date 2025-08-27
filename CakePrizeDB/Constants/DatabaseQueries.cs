@@ -38,5 +38,41 @@ namespace CakePrizeDB.Constants
                 "(id, name, created_date, created_user, modified_date, modified_user) VALUES " +
                 "(@Id, @Name, @CreatedDate, @CreatedUser, @ModifiedDate, @ModifiedUser)";
         }
+
+        public static class Product
+        {
+            public const string GetAll = "SELECT * FROM [CakePrize].[dbo].[product]";
+            public const string GetById = "SELECT * FROM [CakePrize].[dbo].[product] WHERE id = @ProductId";
+            public const string Insert = "INSERT INTO [CakePrize].[dbo].[product] " +
+                "(id, product_type_id, name, created_date, created_user, modified_date, modified_user) VALUES " +
+                "(@Id, @ProductTypeId, @Name, @CreatedDate, @CreatedUser, @ModifiedDate, @ModifiedUser)";
+        }
+
+        public static class ProductIngredient
+        {
+            public const string GetAll = "SELECT * FROM [CakePrize].[dbo].[product_ingredient]";
+            public const string GetById = "SELECT * FROM [CakePrize].[dbo].[product_ingredient] WHERE id = @ProductIngredientId";
+            public const string Insert = "INSERT INTO [CakePrize].[dbo].[product_ingredient] " +
+                "(id, product_id, ingredient_id, ingredient_qty_per_prep, created_date, created_user, modified_date, modified_user) VALUES " +
+                "(@Id, @ProductId, @IngredientId, @IngredientQtyPerPrep, @CreatedDate, @CreatedUser, @ModifiedDate, @ModifiedUser)";
+        }
+
+        public static class ProductPhoto
+        {
+            public const string GetAll = "SELECT * FROM [CakePrize].[dbo].[product_photo]";
+            public const string GetById = "SELECT * FROM [CakePrize].[dbo].[product_photo] WHERE id = @ProductPhotoId";
+            public const string Insert = "INSERT INTO [CakePrize].[dbo].[product_photo] " +
+                "(id, product_id, name, src, image, created_date, created_user, modified_date, modified_user) VALUES " +
+                "(@Id, @ProductId, @Name, @Src, @Image, @CreatedDate, @CreatedUser, @ModifiedDate, @ModifiedUser)";
+        }
+
+        public static class ProductSize
+        {
+            public const string GetAll = "SELECT * FROM [CakePrize].[dbo].[product_size]";
+            public const string GetById = "SELECT * FROM [CakePrize].[dbo].[producttype] WHERE id = @ProductSizeId";
+            public const string Insert = "INSERT INTO [CakePrize].[dbo].[producttype] " +
+                "(id, product_id, product_portions, size, comments, created_date, created_user, modified_date, modified_user) VALUES " +
+                "(@Id, @ProductId, @ProductPortions, @Size, @Comments, @CreatedDate, @CreatedUser, @ModifiedDate, @ModifiedUser)";
+        }
     }
 }

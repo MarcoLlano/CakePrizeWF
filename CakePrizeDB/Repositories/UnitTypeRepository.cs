@@ -1,7 +1,6 @@
 using CakePrizeDB.Constants;
 using CakePrizeDB.Models;
 using Microsoft.Data.SqlClient;
-using System.Data;
 
 namespace CakePrizeDB.Repositories
 {
