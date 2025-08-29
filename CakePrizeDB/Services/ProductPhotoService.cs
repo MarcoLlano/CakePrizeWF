@@ -34,6 +34,16 @@ namespace CakePrizeDB.Services
         }
 
         /// <summary>
+        /// Gets a specific product photo by its Product ID
+        /// </summary>
+        /// <param name="id">The GUID of the product</param>
+        /// <returns>The product photo if found, null otherwise</returns>
+        public ProductPhotoModel? GetProductPhotoByProductId(Guid id)
+        {
+            return _repository.GetByProductId(id);
+        }
+
+        /// <summary>
         /// Creates a new product photo
         /// </summary>
         /// <param name="name">The name of the product photo (e.g., "Tortatresleches.png", "Mushdelimon.jpg")</param>

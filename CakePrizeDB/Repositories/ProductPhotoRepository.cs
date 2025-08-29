@@ -56,6 +56,27 @@ namespace CakePrizeDB.Repositories
             return null;
         }
 
+        public ProductPhotoModel? GetByProductId(Guid id)
+        {
+            using var command = new SqlCommand(DatabaseQueries.ProductPhoto.GetByProductId, _connection);
+            command.Parameters.AddWithValue("@ProductId", id);
+
+            using var reader = command.ExecuteReader();
+            if (reader.Read())
+            {
+                return new ProductPhotoModel
+                {
+                    Id = reader.GetGuid(0),
+                    ProductId = reader.GetGuid(1),
+                    Name = reader.GetString(2),
+                    Src = reader.GetString(3),
+                    Image = ConvertBytesToImage(reader.GetValue(4) as byte[]),
+                };
+            }
+
+            return null;
+        }
+
         public void Insert(ProductPhotoModel productPhoto)
         {
             using var command = new SqlCommand(DatabaseQueries.ProductPhoto.Insert, _connection);

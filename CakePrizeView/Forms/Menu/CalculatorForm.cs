@@ -1,25 +1,35 @@
-using CakePrize.libs.utils;
+using CakePrizeDB.Services;
 using CakePrizeView.Utils;
 using Microsoft.Data.SqlClient;
-using System.Collections.Generic;
 
 namespace CakePrizeView
 {
     public partial class CalculatorForm : Form
     {
         private Form previousForm;
-        private SqlConnection sqlConnection;
-        private int data;
-        
+        private ProductService productService;
+        private ProductIngredientService productIngredientService;
+        private IngredientService ingredientService;
+        private UnitTypeService unitTypeService;
+        private ProductPhotoService productPhotoService;
+
+
         // Store initial form size for relative positioning
         private Size initialFormSize;
         private Dictionary<Control, Rectangle> initialControlBounds;
 
         public CalculatorForm(Form previousForm, SqlConnection sqlConnection)
         {
+            productService = new ProductService(sqlConnection);
+            productIngredientService = new ProductIngredientService(sqlConnection);
+            ingredientService = new IngredientService(sqlConnection);
+            unitTypeService = new UnitTypeService(sqlConnection);
+            productPhotoService = new ProductPhotoService(sqlConnection);
+            initialControlBounds = new Dictionary<Control, Rectangle>();
+
             InitializeComponent();
             this.previousForm = previousForm;
-            this.sqlConnection = sqlConnection;
+
             
             // Add resize event handler
             this.Resize += CalculatorForm_Resize;
@@ -55,39 +65,38 @@ namespace CakePrizeView
             lblTotalAmount.Text = total.ToString();*/
         }
 
-        private void CreateIngredientRows(int data)
+        private void CreateIngredientRows(List<Guid> ingredientsAmount)
         {
-            string ingredientName = "Harina";
-            string unitPrefix = "grs";
+            int lblIngredientNamePosX = 0;
+            int lblIngredientNamePosY = 0;
+            int lblIngredientNameSizeX = 99;
+            int lblIngredientNameSizeY = 19;
 
-            int ingredientNamePosX = 6;
-            int ingredientNamePosY = 6;
-            int ingredientNameSizeX = 55;
-            int ingredientNameSizeY = 17;
+            int lblUnitAcronymPosX = 230;
+            int lblUnitAcronymPosY = 0;
+            int lblUnitAcronymSizeX = 15;
+            int lblUnitAcronymSizeY = 19;
 
-            int unitPrefixSizeX = 186;
-            int unitPrefixSizeY = 6;
-            int unitPrefixPosX = 186;
-            int unitPrefixPosY = 6;
-
-            int ingredientTxtSizeX = 91;
-            int ingredientTxtSizeY = 22;
-            int ingredientTxtPosX = 89;
-            int ingredientTxtPosY = 2;
+            int txtIngredientPosX = 100;
+            int txtIngredientPosY = 0;
+            int txtIngredientSizeX = 130;
+            int txtIngredientSizeY = 19;
 
 
-            int ingredientRetailPosX = 278;
-            int ingredientRetailPosY = 5;
-            int ingredientRetailSizeX = 60;
+            int ingredientRetailPosX = 350;
+            int ingredientRetailPosY = 0;
+            int ingredientRetailSizeX = 94;
             int ingredientRetailSizeY = 19;
 
-            int ingredientWholesalePosX = 381;
-            int ingredientWholesalePosY = 5;
-            int ingredientWholesaleSizeX = 59;
+            int ingredientWholesalePosX = 450;
+            int ingredientWholesalePosY = 0;
+            int ingredientWholesaleSizeX = 94;
             int ingredientWholesaleSizeY = 19;
 
-            int ingredientPanelRowPosX = 3;
-            int ingredientPanelRowPosY = 3;
+            int ingredientPanelRowPosX = -2;
+            int ingredientPanelRowPosY = 0;
+            int ingredientPanelRowSizeX = 1168;
+            int ingredientPanelRowSizeY = 1191;
             int incrementPanelRowY = 31;
 
             TextBox TxtIngredientAmount;
@@ -96,38 +105,53 @@ namespace CakePrizeView
             RadioButton RbtnRetailPrize;
             RadioButton RbtnWholesalePrize;
 
-            for (int i = 0; i < data; i++)
+            int numRow = 0;
+
+            foreach (var ingrId in ingredientsAmount)
             {
-                LblingredientName = FormUtils.CreateLabel($"{ingredientName}", i, ingredientNamePosX, ingredientNamePosY,
-                    ingredientNameSizeX, ingredientNameSizeY);
+                var ingredient = ingredientService.GetIngredientById(ingrId);
+                var unitType = unitTypeService.GetUnitTypeById(ingredient.UnitTypeId);
 
-                LblunitPrefix = FormUtils.CreateLabel($"{unitPrefix}", i, unitPrefixPosX, unitPrefixPosY,
-                    unitPrefixSizeX, unitPrefixSizeY);
+                LblingredientName = FormUtils.CreateLabel($"{ingredient.Name}", numRow, lblIngredientNamePosX, lblIngredientNamePosY,
+                    lblIngredientNameSizeX, lblIngredientNameSizeY);
 
-                TxtIngredientAmount = FormUtils.CreateTextBox(ingredientName, i, ingredientTxtPosX, ingredientTxtPosY,
-                    ingredientTxtSizeX, ingredientTxtSizeY);
+                LblunitPrefix = FormUtils.CreateLabel($"{unitType.Acronym}", numRow, lblUnitAcronymPosX, lblUnitAcronymPosY,
+                    lblUnitAcronymSizeX, lblUnitAcronymSizeY);
 
-                RbtnRetailPrize = FormUtils.CreateRadioButton("Menor", i, ingredientRetailPosX, ingredientRetailPosY,
+                TxtIngredientAmount = FormUtils.CreateTextBox(ingredient.Name, numRow, txtIngredientPosX, txtIngredientPosY,
+                    txtIngredientSizeX, txtIngredientSizeY);
+
+                RbtnRetailPrize = FormUtils.CreateRadioButton("Menor", numRow, ingredientRetailPosX, ingredientRetailPosY,
                     ingredientRetailSizeX, ingredientRetailSizeY, false);
 
-                RbtnWholesalePrize = FormUtils.CreateRadioButton("Mayor", i, ingredientWholesalePosX, ingredientWholesalePosY,
+                RbtnWholesalePrize = FormUtils.CreateRadioButton("Mayor", numRow, ingredientWholesalePosX, ingredientWholesalePosY,
                     ingredientWholesaleSizeX, ingredientWholesaleSizeY, true);
-                
+
                 PnlIngredients.Controls.Add(
-                    FormUtils.CreateIngredientPanelRow(i, LblingredientName, TxtIngredientAmount, LblunitPrefix, RbtnRetailPrize,
-                    RbtnWholesalePrize, ingredientPanelRowPosX, ingredientPanelRowPosY));
+                    FormUtils.CreateIngredientPanelRow(numRow, LblingredientName, TxtIngredientAmount, LblunitPrefix, RbtnRetailPrize,
+                    RbtnWholesalePrize, ingredientPanelRowPosX, ingredientPanelRowPosY, ingredientPanelRowSizeX, ingredientPanelRowSizeY));
 
                 ingredientPanelRowPosY += incrementPanelRowY;
+                numRow++;
+                FormUtils.EnsureMinimumSpacing(LblingredientName, TxtIngredientAmount, LblunitPrefix, RbtnWholesalePrize);
+                float scaleX = (float)this.Width / initialFormSize.Width;
+                float scaleY = (float)this.Height / initialFormSize.Height;
+                StoreControlBounds(TxtIngredientAmount);
+                AdjustControlLayout(PnlIngredients, scaleX, scaleY);
+                /*AdjustControlLayout(LblunitPrefix, scaleX, scaleY);
+                AdjustControlLayout(TxtIngredientAmount, scaleX, scaleY);
+                AdjustControlLayout(RbtnRetailPrize, scaleX, scaleY);
+                AdjustControlLayout(RbtnWholesalePrize, scaleX, scaleY);*/
             }
         }
 
         private void FrmCupcake_Load(object sender, EventArgs e)
         {
-            TSCmbCakeList.Items.Add(string.Empty);
-            TSCmbCakeList.Items.Add("Chocolate");
-            TSCmbCakeList.Items.Add("Chirimoya");
-            TSCmbCakeList.Items.Add("Vainilla");
-            TSCmbCakeList.Items.Add("Frutilla");
+            foreach (var item in productService.GetAllProducts())
+            {
+                TSCmbProductList.Items.Add(item.Name); 
+            }
+            
         }
 
         private void PnlIngredients_Click(object sender, EventArgs e)
@@ -145,30 +169,38 @@ namespace CakePrizeView
             UpdateTotalLabel();
         }
 
+        private void LoadImage(object sender, EventArgs e, Guid productId)
+        {
+            try
+            {
+                var photo = productPhotoService.GetProductPhotoByProductId(productId);
+                if (photo != null)
+                {
+                    imgProduct.Image = photo != null ? photo.Image : Properties.Resources.PhotoNotFound;
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
         private void CmbCupcakeList_SelectedValueChanged(object sender, EventArgs e)
         {
             PnlIngredients.Controls.Clear();
+            var productId = productService.GetAllProducts()
+                .Where(product => product.Name == TSCmbProductList.Text)
+                .Select(item => item.Id).First();
+            var test = productIngredientService.GetProductIngredientByProductId(productId);
 
-            if (TSCmbCakeList.Text.Equals("Chocolate"))
-            {
-                data = 3;
-                CreateIngredientRows(data);
-                UpdateTotalLabel();
-            }
-            if (TSCmbCakeList.Text.Equals("Vainilla"))
-            {
-                data = 8;
-                CreateIngredientRows(data);
-                UpdateTotalLabel();
-            }
-            if (TSCmbCakeList.Text.Equals("Chirimoya"))
-            {
-                data = 19;
-                CreateIngredientRows(data);
-                UpdateTotalLabel();
-            }
+            var prodIngredients = productIngredientService.GetProductIngredientByProductId(productId)
+                .Where(prodId => prodId.ProductId == productId).Select(item => item.IngredientId).ToList();
 
-            LblCakeTitle.Text = TSCmbCakeList.Text;
+            CreateIngredientRows(prodIngredients);
+            UpdateTotalLabel();
+
+            LblFormTitle.Text = TSCmbProductList.Text;
+            LoadImage(sender, e, productId);
         }
 
         private void btnBack_Click(object sender, EventArgs e)
@@ -185,39 +217,8 @@ namespace CakePrizeView
 
         private void TSMenuItem_Click(object sender, EventArgs e)
         {
-            TSCmbCakeList.Items.Clear();
+            TSCmbProductList.Items.Clear();
             TSLblSelectedCake.Text = sender.ToString();
-            switch (sender.ToString())
-            {
-                case "Tortas":
-                    TSCmbCakeList.Items.Add(string.Empty);
-                    TSCmbCakeList.Items.Add("Torta de mora");
-                    TSCmbCakeList.Items.Add("Torta tres leches");
-                    TSCmbCakeList.Items.Add("Torta selva negra");
-                    TSCmbCakeList.Items.Add("Frutilla con relleno de chocolate");
-                    break;
-                case "Cupcakes":
-                    TSCmbCakeList.Items.Add(string.Empty);
-                    TSCmbCakeList.Items.Add("Chocolate");
-                    TSCmbCakeList.Items.Add("Chirimoya");
-                    TSCmbCakeList.Items.Add("Vainilla");
-                    TSCmbCakeList.Items.Add("Zanahoria");
-                    break;
-                case "Mush":
-                    TSCmbCakeList.Items.Add(string.Empty);
-                    TSCmbCakeList.Items.Add("Limon");
-                    TSCmbCakeList.Items.Add("Chirimoya");
-                    TSCmbCakeList.Items.Add("Mora");
-                    TSCmbCakeList.Items.Add("Frutilla");
-                    break;
-                case "Postres":
-                    TSCmbCakeList.Items.Add(string.Empty);
-                    TSCmbCakeList.Items.Add("Brownies");
-                    TSCmbCakeList.Items.Add("Tarta de Manzana");
-                    break;
-                default:
-                    break;
-            }
         }
 
         /// <summary>
@@ -229,14 +230,14 @@ namespace CakePrizeView
             initialControlBounds = new Dictionary<Control, Rectangle>();
             
             // Store initial bounds for all controls that need responsive positioning
-            StoreControlBounds(picCupcake);
-            StoreControlBounds(LblCakeTitle);
+            StoreControlBounds(imgProduct);
+            StoreControlBounds(LblFormTitle);
             StoreControlBounds(BtnBack);
             StoreControlBounds(BtnClose);
             StoreControlBounds(PnlIngredients);
-            StoreControlBounds(panel4);
-            StoreControlBounds(LblPrizeTypeTitle);
-            StoreControlBounds(label3);
+            StoreControlBounds(pnlTotalPrices);
+            StoreControlBounds(LblSelectPriceTitle);
+            StoreControlBounds(lblIngredientsTitle);
         }
 
         /// <summary>
@@ -259,7 +260,7 @@ namespace CakePrizeView
         /// <summary>
         /// Handles form resize to adjust control positions and sizes
         /// </summary>
-        private void CalculatorForm_Resize(object sender, EventArgs e)
+        private void CalculatorForm_Resize(object? sender, EventArgs e)
         {
             if (initialControlBounds == null || initialFormSize.Width == 0 || initialFormSize.Height == 0)
                 return;
@@ -269,14 +270,14 @@ namespace CakePrizeView
             float scaleY = (float)this.Height / initialFormSize.Height;
 
             // Adjust control positions and sizes
-            AdjustControlLayout(picCupcake, scaleX, scaleY);
-            AdjustControlLayout(LblCakeTitle, scaleX, scaleY);
+            AdjustControlLayout(imgProduct, scaleX, scaleY);
+            AdjustControlLayout(LblFormTitle, scaleX, scaleY);
             AdjustControlLayout(BtnBack, scaleX, scaleY);
             AdjustControlLayout(BtnClose, scaleX, scaleY);
             AdjustControlLayout(PnlIngredients, scaleX, scaleY);
-            AdjustControlLayout(panel4, scaleX, scaleY);
-            AdjustControlLayout(LblPrizeTypeTitle, scaleX, scaleY);
-            AdjustControlLayout(label3, scaleX, scaleY);
+            AdjustControlLayout(pnlTotalPrices, scaleX, scaleY);
+            AdjustControlLayout(LblSelectPriceTitle, scaleX, scaleY);
+            AdjustControlLayout(lblIngredientsTitle, scaleX, scaleY);
             
             // Ensure minimum spacing between controls
             EnsureMinimumSpacing();
@@ -309,23 +310,17 @@ namespace CakePrizeView
         {
             const int minSpacing = 10;
             
-            // Ensure minimum spacing between back and close buttons
+            /*// Ensure minimum spacing between back and close buttons
             if (BtnBack.Right + minSpacing > BtnClose.Left)
             {
                 BtnClose.Left = BtnBack.Right + minSpacing;
-            }
-            
+            }*/
+
             // Ensure minimum spacing between picture and ingredients panel
-            if (picCupcake.Right + minSpacing > PnlIngredients.Left)
+            if (imgProduct.Right + minSpacing > PnlIngredients.Left)
             {
-                PnlIngredients.Left = picCupcake.Right + minSpacing;
-            }
-            
-            // Ensure minimum spacing between ingredients panel and price panel
-            if (PnlIngredients.Right + minSpacing > panel4.Left)
-            {
-                panel4.Left = PnlIngredients.Right + minSpacing;
-            }
+                PnlIngredients.Left = imgProduct.Right + minSpacing;
+            }            
         }
     }
 

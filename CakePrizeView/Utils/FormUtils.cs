@@ -46,8 +46,8 @@ namespace CakePrizeView.Utils
             return radioButton;
         }
 
-        public static Panel CreateIngredientPanelRow(int rowNumber, Label ingredientName, TextBox ingredientTxt, 
-            Label unitPrefix, RadioButton rbtnMin, RadioButton rbtnMax, int locationX, int locationY)
+        public static Panel CreateIngredientPanelRow(int rowNumber, Label ingredientName, TextBox ingredientTxt, Label unitPrefix,
+            RadioButton rbtnMin, RadioButton rbtnMax, int pnlIngLocationX, int pnlIngLocationY, int pnlIngSizeX, int pnlIngSizeY)
         {
             Panel PlIngredientRowPanel = new Panel();
             PlIngredientRowPanel.Controls.Add(ingredientName);
@@ -55,9 +55,9 @@ namespace CakePrizeView.Utils
             PlIngredientRowPanel.Controls.Add(unitPrefix);
             PlIngredientRowPanel.Controls.Add(rbtnMin);
             PlIngredientRowPanel.Controls.Add(rbtnMax);
-            PlIngredientRowPanel.Location = new Point(locationX, locationY);
+            PlIngredientRowPanel.Location = new Point(pnlIngLocationX, pnlIngLocationY);
             PlIngredientRowPanel.Name = $"PlIngredientRowPanel_{rowNumber}";
-            PlIngredientRowPanel.Size = new Size(464, 27);
+            PlIngredientRowPanel.Size = new Size(pnlIngSizeX,pnlIngSizeY);
             PlIngredientRowPanel.TabIndex = 11;
             return PlIngredientRowPanel;
         }

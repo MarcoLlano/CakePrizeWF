@@ -52,6 +52,7 @@ namespace CakePrizeDB.Constants
         {
             public const string GetAll = "SELECT * FROM [CakePrize].[dbo].[product_ingredient]";
             public const string GetById = "SELECT * FROM [CakePrize].[dbo].[product_ingredient] WHERE id = @ProductIngredientId";
+            public const string GetByProductId = "SELECT * FROM [CakePrize].[dbo].[product_ingredient] WHERE product_id = @ProductId";
             public const string Insert = "INSERT INTO [CakePrize].[dbo].[product_ingredient] " +
                 "(id, product_id, ingredient_id, ingredient_qty_per_prep, created_date, created_user, modified_date, modified_user) VALUES " +
                 "(@Id, @ProductId, @IngredientId, @IngredientQtyPerPrep, @CreatedDate, @CreatedUser, @ModifiedDate, @ModifiedUser)";
@@ -61,6 +62,7 @@ namespace CakePrizeDB.Constants
         {
             public const string GetAll = "SELECT * FROM [CakePrize].[dbo].[product_photo]";
             public const string GetById = "SELECT * FROM [CakePrize].[dbo].[product_photo] WHERE id = @ProductPhotoId";
+            public const string GetByProductId = "SELECT * FROM [CakePrize].[dbo].[product_photo] WHERE product_id = @ProductId";
             public const string Insert = "INSERT INTO [CakePrize].[dbo].[product_photo] " +
                 "(id, product_id, name, src, image, created_date, created_user, modified_date, modified_user) VALUES " +
                 "(@Id, @ProductId, @Name, @Src, @Image, @CreatedDate, @CreatedUser, @ModifiedDate, @ModifiedUser)";
