@@ -1,6 +1,7 @@
 ﻿using CakePrizeDB.Constants;
 using CakePrizeDB.Models;
 using Microsoft.Data.SqlClient;
+using System.Collections.Generic;
 
 namespace CakePrizeDB.Repositories
 {
@@ -42,11 +43,33 @@ namespace CakePrizeDB.Repositories
                     Id = reader.GetGuid(0),
                     ProductId = reader.GetGuid(1),
                     IngredientId = reader.GetGuid(2),
-                    IngredientQtyPerPrep = reader.GetFloat(3)
+                    IngredientQtyPerPrep = (float)reader.GetDouble(3)
                 };
             }
 
             return null;
+        }
+
+        public List<ProductIngredientModel>? GetByProductId(Guid id)
+        {
+            using var command = new SqlCommand(DatabaseQueries.ProductIngredient.GetByProductId, _connection);
+            command.Parameters.AddWithValue("@ProductId", id);
+            List <ProductIngredientModel> prodIngredientList = new List <ProductIngredientModel>();
+
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                prodIngredientList.Add(
+                new ProductIngredientModel
+                {
+                    Id = reader.GetGuid(0),
+                    ProductId = reader.GetGuid(1),
+                    IngredientId = reader.GetGuid(2),
+                    IngredientQtyPerPrep = (float)reader.GetDouble(3)
+                });
+            }
+
+            return prodIngredientList.Count > 0 ? prodIngredientList : null;
         }
 
         public void Insert(ProductIngredientModel productIngredient)

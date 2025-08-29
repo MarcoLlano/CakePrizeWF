@@ -256,5 +256,12 @@ namespace CakePrizeView
                 btnClose.Left = btnLogout.Right + minSpacing;
             }
         }
+
+        private void btnCalculatorFrm_Click(object sender, EventArgs e)
+        {
+            Hide();
+            CalculatorForm calculatorForm = new CalculatorForm(FindForm() ?? new ErrorNotFoundForm(), sqlConnection);
+            calculatorForm.Show();
+        }
     }
 }

@@ -33,6 +33,16 @@ namespace CakePrizeDB.Services
         }
 
         /// <summary>
+        /// Gets a specific product-ingredient by product ID
+        /// </summary>
+        /// <param name="id">The GUID of the product</param>
+        /// <returns>The product ingredient given the product id if found, null otherwise</returns>
+        public List<ProductIngredientModel>? GetProductIngredientByProductId(Guid id)
+        {
+            return _repository.GetByProductId(id);
+        }
+
+        /// <summary>
         /// Creates a new product-ingredient link
         /// </summary>
         /// <returns>The created product-ingredient link with generated ID</returns>
