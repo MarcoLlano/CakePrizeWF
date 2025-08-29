@@ -7,7 +7,6 @@ namespace CakePrizeView
     public partial class CalculatorForm : Form
     {
         private Form previousForm;
-        private int ingredientsAmount;
         private ProductService productService;
         private ProductIngredientService productIngredientService;
         private IngredientService ingredientService;
@@ -26,9 +25,11 @@ namespace CakePrizeView
             ingredientService = new IngredientService(sqlConnection);
             unitTypeService = new UnitTypeService(sqlConnection);
             productPhotoService = new ProductPhotoService(sqlConnection);
+            initialControlBounds = new Dictionary<Control, Rectangle>();
 
             InitializeComponent();
             this.previousForm = previousForm;
+
             
             // Add resize event handler
             this.Resize += CalculatorForm_Resize;
@@ -259,7 +260,7 @@ namespace CakePrizeView
         /// <summary>
         /// Handles form resize to adjust control positions and sizes
         /// </summary>
-        private void CalculatorForm_Resize(object sender, EventArgs e)
+        private void CalculatorForm_Resize(object? sender, EventArgs e)
         {
             if (initialControlBounds == null || initialFormSize.Width == 0 || initialFormSize.Height == 0)
                 return;
