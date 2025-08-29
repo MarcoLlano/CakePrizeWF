@@ -76,5 +76,15 @@ namespace CakePrizeDB.Constants
                 "(id, product_id, product_portions, size, comments, created_date, created_user, modified_date, modified_user) VALUES " +
                 "(@Id, @ProductId, @ProductPortions, @Size, @Comments, @CreatedDate, @CreatedUser, @ModifiedDate, @ModifiedUser)";
         }
+
+        public static class Logs
+        {
+            public const string GetAll = "SELECT * FROM [CakePrize].[dbo].[logs]";
+            public const string GetById = "SELECT * FROM [CakePrize].[dbo].[logs] WHERE id = @ProductSizeId";
+            public const string GetByType = "SELECT * FROM [CakePrize].[dbo].[logs] WHERE type = @Type";
+            public const string Insert = "INSERT INTO [CakePrize].[dbo].[logs] " +
+                "(id, type, description, created_date, created_user) VALUES " +
+                "(@Id, @Type, @Description, @CreatedDate, @CreatedUser)";
+        }
     }
 }

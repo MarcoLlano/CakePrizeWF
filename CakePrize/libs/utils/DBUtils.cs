@@ -25,7 +25,7 @@ namespace CakePrizeCore.libs.DBUtils
         public static string GetConnectionString()
         {
             // Try multiple sources for the connection string
-            var connectionString = ConfigurationManager.ConnectionStrings["CakePrize"]?.ConnectionString
+            var connectionString = ConfigurationManager.ConnectionStrings["CakePrizeTest"]?.ConnectionString
                 ?? Environment.GetEnvironmentVariable("CAKEPRIZE__CONNECTIONSTRING")
                 ?? Environment.GetEnvironmentVariable("CAKEPRIZE_CONNECTIONSTRING");
 
@@ -35,7 +35,7 @@ namespace CakePrizeCore.libs.DBUtils
                 try
                 {
                     var config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-                    connectionString = config.ConnectionStrings?.ConnectionStrings["CakePrize"]?.ConnectionString;
+                    connectionString = config.ConnectionStrings?.ConnectionStrings["CakePrizeTest"]?.ConnectionString;
                 }
                 catch
                 {

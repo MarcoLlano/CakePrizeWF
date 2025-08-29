@@ -1,6 +1,6 @@
+using CakePrizeDB.Services;
 using CakePrizeView.Forms;
-using System;
-using System.Windows.Forms;
+using Microsoft.Data.SqlClient;
 
 namespace CakePrizeView
 {
@@ -37,6 +37,8 @@ namespace CakePrizeView
                 
                 // Log to console if running from command line
                 Console.WriteLine($"FATAL ERROR: {errorMessage}");
+                LogsService logsService = new LogsService(OpenDBConnection());
+                logsService.CreateLog(errorMessage, "Error", "Marco Llano");
             }
         }
         
@@ -66,7 +68,7 @@ namespace CakePrizeView
                 // Test the connection
                 using (var connection = CakePrizeCore.libs.DBUtils.DBUtils.CreateConnection())
                 {
-                    connection.Open();
+                    OpenDBConnection();
                     connection.Close();
                 }
                 
@@ -84,6 +86,16 @@ namespace CakePrizeView
                 
                 MessageBox.Show(errorMessage, "Database Connection Warning", 
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private static SqlConnection OpenDBConnection()
+        {
+            using (var connection = CakePrizeCore.libs.DBUtils.DBUtils.CreateConnection())
+            {
+                connection.Open();
+                connection.Close();
+                return connection;
             }
         }
     }

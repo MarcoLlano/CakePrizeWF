@@ -2,12 +2,6 @@
 using CakePrizeDB.Services;
 using CakePrizeView.Utils;
 using Microsoft.Data.SqlClient;
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.IO;
-using System.Linq;
-using System.Windows.Forms;
 
 namespace CakePrizeView.Forms.Menu.Products
 {
@@ -20,9 +14,9 @@ namespace CakePrizeView.Forms.Menu.Products
         private ProductIngredientService productIngredientService;
         private ProductPhotoService productPhotoService;
         private ProductSizeService productSizeService;
+        private LogsService logsService;
         private string fileName;
         private string fullFileName;
-        private Dictionary<Guid, string> ingredientList;
 
         // Store initial form size for relative positioning
         private Size initialFormSize;
@@ -37,8 +31,8 @@ namespace CakePrizeView.Forms.Menu.Products
             productIngredientService = new ProductIngredientService(sqlConnection);
             productPhotoService = new ProductPhotoService(sqlConnection);
             productSizeService = new ProductSizeService(sqlConnection);
+            logsService = new LogsService(sqlConnection);
             initialControlBounds = new Dictionary<Control, Rectangle>();
-            ingredientList = new Dictionary<Guid, string>();
             fileName = string.Empty;
             fullFileName = string.Empty;
             InitializeComponent();
@@ -85,7 +79,7 @@ namespace CakePrizeView.Forms.Menu.Products
         /// <summary>
         /// Handles click event for ProductType ComboBox
         /// </summary>
-        private void CbProductType_Click(object sender, EventArgs e)
+        private void CbProductType_Click(object? sender, EventArgs e)
         {
             try
             {
@@ -105,7 +99,7 @@ namespace CakePrizeView.Forms.Menu.Products
         /// <summary>
         /// Handles click event for Ingredient ComboBox
         /// </summary>
-        private void CbProductIngredient_Click(object sender, EventArgs e)
+        private void CbProductIngredient_Click(object? sender, EventArgs e)
         {
             try
             {
@@ -295,6 +289,7 @@ namespace CakePrizeView.Forms.Menu.Products
                     if (newProdPhoto != null)
                     {
                         MessageBox.Show("Product saved successfully with photo!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        logsService.CreateLog($"Product {newProd.Name} saved successfully with photo!", "Info", "Marco Llano");
                     }
                     else
                     {
@@ -330,10 +325,10 @@ namespace CakePrizeView.Forms.Menu.Products
                 for (int rowIndex = 0; rowIndex < gvProductIngredientList.Rows.Count; rowIndex++)
                 {
                     // Get the ingredient name from the first column (index 0)
-                    string ingredientName = gvProductIngredientList.Rows[rowIndex].Cells[0].Value?.ToString();
+                    string ingredientName = gvProductIngredientList.Rows[rowIndex].Cells[0].Value.ToString();
                     
                     // Get the quantity from the second column (index 1)
-                    string quantityText = gvProductIngredientList.Rows[rowIndex].Cells[1].Value?.ToString();
+                    string quantityText = gvProductIngredientList.Rows[rowIndex].Cells[1].Value.ToString();
                     
                     if (!string.IsNullOrEmpty(ingredientName) && !string.IsNullOrEmpty(quantityText))
                     {

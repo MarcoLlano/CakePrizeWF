@@ -72,12 +72,12 @@ namespace CakePrizeView
             int lblIngredientNameSizeX = 99;
             int lblIngredientNameSizeY = 19;
 
-            int lblUnitAcronymPosX = 230;
+            int lblUnitAcronymPosX = 299;
             int lblUnitAcronymPosY = 0;
-            int lblUnitAcronymSizeX = 15;
+            int lblUnitAcronymSizeX = 5;
             int lblUnitAcronymSizeY = 19;
 
-            int txtIngredientPosX = 100;
+            int txtIngredientPosX = 110;
             int txtIngredientPosY = 0;
             int txtIngredientSizeX = 130;
             int txtIngredientSizeY = 19;
@@ -110,6 +110,8 @@ namespace CakePrizeView
             foreach (var ingrId in ingredientsAmount)
             {
                 var ingredient = ingredientService.GetIngredientById(ingrId);
+                var dfaultSelectedRetail = ingredient.DefaultPrice == "Retail";
+                var dfaultSelectedWhole = ingredient.DefaultPrice == "Wholesale";
                 var unitType = unitTypeService.GetUnitTypeById(ingredient.UnitTypeId);
 
                 LblingredientName = FormUtils.CreateLabel($"{ingredient.Name}", numRow, lblIngredientNamePosX, lblIngredientNamePosY,
@@ -122,10 +124,10 @@ namespace CakePrizeView
                     txtIngredientSizeX, txtIngredientSizeY);
 
                 RbtnRetailPrize = FormUtils.CreateRadioButton("Menor", numRow, ingredientRetailPosX, ingredientRetailPosY,
-                    ingredientRetailSizeX, ingredientRetailSizeY, false);
+                    ingredientRetailSizeX, ingredientRetailSizeY, dfaultSelectedRetail);
 
                 RbtnWholesalePrize = FormUtils.CreateRadioButton("Mayor", numRow, ingredientWholesalePosX, ingredientWholesalePosY,
-                    ingredientWholesaleSizeX, ingredientWholesaleSizeY, true);
+                    ingredientWholesaleSizeX, ingredientWholesaleSizeY, dfaultSelectedWhole);
 
                 PnlIngredients.Controls.Add(
                     FormUtils.CreateIngredientPanelRow(numRow, LblingredientName, TxtIngredientAmount, LblunitPrefix, RbtnRetailPrize,
