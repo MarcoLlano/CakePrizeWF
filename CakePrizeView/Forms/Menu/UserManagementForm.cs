@@ -1,23 +1,24 @@
 using CakePrizeDB.Models;
 using CakePrizeDB.Services;
 using CakePrizeView.Utils;
+using CakePrizeCore.libs.DBUtils;
 using Microsoft.Data.SqlClient;
 
 namespace CakePrizeView.Forms.Menu
 {
-    public partial class UserManagementForm : Form
+    public partial class UserManagementForm : BaseForm
     {
         private Form previousForm;
-        private SqlConnection sqlConnection;
         private UserService userService;
         private List<UserModel> users;
 
-        public UserManagementForm(Form previousForm, SqlConnection sqlConnection)
+        public UserManagementForm(Form previousForm, SqlConnection? sqlConnection = null)
         {
             InitializeComponent();
             this.previousForm = previousForm;
-            this.sqlConnection = sqlConnection;
-            this.userService = new UserService(sqlConnection);
+            
+            // Initialize services after InitializeComponent to ensure proper connection state
+            InitializeServices();
 
             // Check if user has admin permissions
             if (!UserSession.IsAdmin())
@@ -33,6 +34,26 @@ namespace CakePrizeView.Forms.Menu
             
             // Set up auto-maximize
             FormMaximizeHelper.SetupAutoMaximize(this);
+        }
+
+        /// <summary>
+        /// Initializes all services with fresh connections
+        /// </summary>
+        private void InitializeServices()
+        {
+            try
+            {
+                // Create fresh connections for each service to ensure they're open and available
+                var connection = DatabaseConnectionManager.OpenConnection();
+                
+                this.userService = new UserService();
+            }
+            catch (Exception ex)
+            {
+                // If we can't create services, show error but don't crash the form
+                MessageBox.Show($"Failed to initialize database services: {ex.Message}", "Initialization Error", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void LoadUsers()
@@ -203,3 +224,4 @@ namespace CakePrizeView.Forms.Menu
         }
     }
 }
+

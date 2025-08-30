@@ -1,16 +1,17 @@
-﻿using CakePrizeDB.Models;
+using CakePrizeDB.Models;
 using CakePrizeDB.Repositories;
-using Microsoft.Data.SqlClient;
-using System.Diagnostics.Tracing;
+using CakePrizeCore.libs.DBUtils;
 
 namespace CakePrizeDB.Services
 {
     public class LogsService
     {
         private readonly LogsRepository _repository;
-        public LogsService(SqlConnection sqlConnection)
+        public LogsService()
         {
-            _repository = new LogsRepository(sqlConnection);
+            // Use centralized connection management
+            var connection = DatabaseConnectionManager.OpenConnection();
+            _repository = new LogsRepository(connection);
         }
 
         /// <summary>
@@ -64,3 +65,4 @@ namespace CakePrizeDB.Services
         }
     }
 }
+

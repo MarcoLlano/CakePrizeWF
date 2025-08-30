@@ -1,21 +1,30 @@
+using CakePrizeCore.libs.Configuration;
+
 namespace CakePrizeDB.Constants
 {
     public static class DatabaseQueries
     {
+        /// <summary>
+        /// Gets the current database name based on the environment
+        /// </summary>
+        private static string GetCurrentDatabaseName()
+        {
+            return EnvironmentConfig.GetDatabaseName();
+        }
         public static class UnitType
         {
-            public const string GetAll = "SELECT id, name, acronym FROM [CakePrize].[dbo].[unit_type]";
-            public const string GetById = "SELECT id, name, acronym FROM [CakePrize].[dbo].[unit_type] WHERE id = @UnitTypeId";
-            public const string Insert = "INSERT INTO [CakePrize].[dbo].[unit_type] (id, name, acronym) VALUES (@Id, @Name, @Acronym)";
-            public const string Update = "UPDATE [CakePrize].[dbo].[unit_type] SET name = @Name, acronym = @Acronym WHERE id = @Id";
-            public const string Delete = "DELETE FROM [CakePrize].[dbo].[unit_type] WHERE id = @Id";
+            public static string GetAll => $"SELECT id, name, acronym FROM [{GetCurrentDatabaseName()}].[dbo].[unit_type]";
+            public static string GetById => $"SELECT id, name, acronym FROM [{GetCurrentDatabaseName()}].[dbo].[unit_type] WHERE id = @UnitTypeId";
+            public static string Insert => $"INSERT INTO [{GetCurrentDatabaseName()}].[dbo].[unit_type] (id, name, acronym) VALUES (@Id, @Name, @Acronym)";
+            public static string Update => $"UPDATE [{GetCurrentDatabaseName()}].[dbo].[unit_type] SET name = @Name, acronym = @Acronym WHERE id = @Id";
+            public static string Delete => $"DELETE FROM [{GetCurrentDatabaseName()}].[dbo].[unit_type] WHERE id = @Id";
         }
 
         public static class Ingredient
         {
-            public const string GetAll = "SELECT * FROM [CakePrize].[dbo].[ingredient]";
-            public const string GetById = "SELECT * FROM [CakePrize].[dbo].[ingredient] WHERE id = @IngredientId";
-            public const string Insert = "INSERT INTO [CakePrize].[dbo].[ingredient] (id, name, unit_type_id, brand_id, " +
+            public static string GetAll => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[ingredient]";
+            public static string GetById => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[ingredient] WHERE id = @IngredientId";
+            public static string Insert => $"INSERT INTO [{GetCurrentDatabaseName()}].[dbo].[ingredient] (id, name, unit_type_id, brand_id, " +
                 "retail_price_1k, wholesale_price_1k, default_selected_price, comments, created_date, created_user, modified_date," +
                 " modified_user) VALUES (@Id, @Name, @UnitTypeId, @BrandId, @RetailPrice1K, @WholesalePrice1K, @DefaultPrice, @Comments," +
                 " @CreatedDate, @CreatedUser, @ModifiedDate, @ModifiedUser)";
@@ -23,66 +32,66 @@ namespace CakePrizeDB.Constants
 
         public static class Brand
         {
-            public const string GetAll = "SELECT * FROM [CakePrize].[dbo].[brand]";
-            public const string GetById = "SELECT * FROM [CakePrize].[dbo].[brand] WHERE id = @BrandId";
-            public const string Insert = "INSERT INTO [CakePrize].[dbo].[brand] " +
+            public static string GetAll => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[brand]";
+            public static string GetById => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[brand] WHERE id = @BrandId";
+            public static string Insert => $"INSERT INTO [{GetCurrentDatabaseName()}].[dbo].[brand] " +
                 "(id, name, comments, created_date, created_user, modified_date, modified_user) VALUES " +
                 "(@Id, @Name, @Comments, @CreatedDate, @CreatedUser, @ModifiedDate, @ModifiedUser)";
         }
 
         public static class ProductType
         {
-            public const string GetAll = "SELECT * FROM [CakePrize].[dbo].[producttype]";
-            public const string GetById = "SELECT * FROM [CakePrize].[dbo].[producttype] WHERE id = @ProductTypeId";
-            public const string Insert = "INSERT INTO [CakePrize].[dbo].[producttype] " +
+            public static string GetAll => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[producttype]";
+            public static string GetById => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[producttype] WHERE id = @ProductTypeId";
+            public static string Insert => $"INSERT INTO [{GetCurrentDatabaseName()}].[dbo].[producttype] " +
                 "(id, name, created_date, created_user, modified_date, modified_user) VALUES " +
                 "(@Id, @Name, @CreatedDate, @CreatedUser, @ModifiedDate, @ModifiedUser)";
         }
 
         public static class Product
         {
-            public const string GetAll = "SELECT * FROM [CakePrize].[dbo].[product]";
-            public const string GetById = "SELECT * FROM [CakePrize].[dbo].[product] WHERE id = @ProductId";
-            public const string Insert = "INSERT INTO [CakePrize].[dbo].[product] " +
+            public static string GetAll => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[product]";
+            public static string GetById => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[product] WHERE id = @ProductId";
+            public static string Insert => $"INSERT INTO [{GetCurrentDatabaseName()}].[dbo].[product] " +
                 "(id, product_type_id, name, created_date, created_user, modified_date, modified_user) VALUES " +
                 "(@Id, @ProductTypeId, @Name, @CreatedDate, @CreatedUser, @ModifiedDate, @ModifiedUser)";
         }
 
         public static class ProductIngredient
         {
-            public const string GetAll = "SELECT * FROM [CakePrize].[dbo].[product_ingredient]";
-            public const string GetById = "SELECT * FROM [CakePrize].[dbo].[product_ingredient] WHERE id = @ProductIngredientId";
-            public const string GetByProductId = "SELECT * FROM [CakePrize].[dbo].[product_ingredient] WHERE product_id = @ProductId";
-            public const string Insert = "INSERT INTO [CakePrize].[dbo].[product_ingredient] " +
+            public static string GetAll => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[product_ingredient]";
+            public static string GetById => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[product_ingredient] WHERE id = @ProductIngredientId";
+            public static string GetByProductId => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[product_ingredient] WHERE product_id = @ProductId";
+            public static string Insert => $"INSERT INTO [{GetCurrentDatabaseName()}].[dbo].[product_ingredient] " +
                 "(id, product_id, ingredient_id, ingredient_qty_per_prep, created_date, created_user, modified_date, modified_user) VALUES " +
                 "(@Id, @ProductId, @IngredientId, @IngredientQtyPerPrep, @CreatedDate, @CreatedUser, @ModifiedDate, @ModifiedUser)";
         }
 
         public static class ProductPhoto
         {
-            public const string GetAll = "SELECT * FROM [CakePrize].[dbo].[product_photo]";
-            public const string GetById = "SELECT * FROM [CakePrize].[dbo].[product_photo] WHERE id = @ProductPhotoId";
-            public const string GetByProductId = "SELECT * FROM [CakePrize].[dbo].[product_photo] WHERE product_id = @ProductId";
-            public const string Insert = "INSERT INTO [CakePrize].[dbo].[product_photo] " +
+            public static string GetAll => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[product_photo]";
+            public static string GetById => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[product_photo] WHERE id = @ProductPhotoId";
+            public static string GetByProductId => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[product_photo] WHERE product_id = @ProductId";
+            public static string Insert => $"INSERT INTO [{GetCurrentDatabaseName()}].[dbo].[product_photo] " +
                 "(id, product_id, name, src, image, created_date, created_user, modified_date, modified_user) VALUES " +
                 "(@Id, @ProductId, @Name, @Src, @Image, @CreatedDate, @CreatedUser, @ModifiedDate, @ModifiedUser)";
         }
 
         public static class ProductSize
         {
-            public const string GetAll = "SELECT * FROM [CakePrize].[dbo].[product_size]";
-            public const string GetById = "SELECT * FROM [CakePrize].[dbo].[product_size] WHERE id = @ProductSizeId";
-            public const string Insert = "INSERT INTO [CakePrize].[dbo].[product_size] " +
+            public static string GetAll => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[product_size]";
+            public static string GetById => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[product_size] WHERE id = @ProductSizeId";
+            public static string Insert => $"INSERT INTO [{GetCurrentDatabaseName()}].[dbo].[product_size] " +
                 "(id, product_id, product_portions, size, comments, created_date, created_user, modified_date, modified_user) VALUES " +
                 "(@Id, @ProductId, @ProductPortions, @Size, @Comments, @CreatedDate, @CreatedUser, @ModifiedDate, @ModifiedUser)";
         }
 
         public static class Logs
         {
-            public const string GetAll = "SELECT * FROM [CakePrize].[dbo].[logs]";
-            public const string GetById = "SELECT * FROM [CakePrize].[dbo].[logs] WHERE id = @ProductSizeId";
-            public const string GetByType = "SELECT * FROM [CakePrize].[dbo].[logs] WHERE type = @Type";
-            public const string Insert = "INSERT INTO [CakePrize].[dbo].[logs] " +
+            public static string GetAll => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[logs]";
+            public static string GetById => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[logs] WHERE id = @ProductSizeId";
+            public static string GetByType => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[logs] WHERE type = @Type";
+            public static string Insert => $"INSERT INTO [{GetCurrentDatabaseName()}].[dbo].[logs] " +
                 "(id, type, description, created_date, created_user) VALUES " +
                 "(@Id, @Type, @Description, @CreatedDate, @CreatedUser)";
         }

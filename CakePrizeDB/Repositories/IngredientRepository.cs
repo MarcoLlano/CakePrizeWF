@@ -29,6 +29,16 @@ namespace CakePrizeDB.Repositories
                 {
                     Id = reader.GetGuid(0),
                     Name = reader.GetString(1),
+                    UnitTypeId = reader.GetGuid(2),
+                    BrandId = reader.GetGuid(3),
+                    RetailPrice = (float) reader.GetDouble(4),
+                    WholesalePrice = (float) reader.GetDouble(5),
+                    DefaultPrice = reader.GetString(6),
+                    Comments = reader.GetString(7),
+                    CreatedDate = reader.GetDateTime(8),
+                    CreatedUser = reader.GetString(9),
+                    ModifiedDate = reader.GetDateTime(10),
+                    ModifiedUser = reader.GetString(11)
                 });
             }
 

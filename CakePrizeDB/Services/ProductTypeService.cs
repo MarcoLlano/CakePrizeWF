@@ -1,6 +1,6 @@
-﻿using CakePrizeDB.Models;
+using CakePrizeDB.Models;
 using CakePrizeDB.Repositories;
-using Microsoft.Data.SqlClient;
+using CakePrizeCore.libs.DBUtils;
 
 namespace CakePrizeDB.Services
 {
@@ -8,9 +8,11 @@ namespace CakePrizeDB.Services
     {
         private readonly ProductTypeRepository _repository;
 
-        public ProductTypeService(SqlConnection sqlConnection)
+        public ProductTypeService()
         {
-            _repository = new ProductTypeRepository(sqlConnection);
+            // Use centralized connection management
+            var connection = DatabaseConnectionManager.OpenConnection();
+            _repository = new ProductTypeRepository(connection);
         }
 
         /// <summary>
@@ -55,3 +57,4 @@ namespace CakePrizeDB.Services
         }
     }
 }
+

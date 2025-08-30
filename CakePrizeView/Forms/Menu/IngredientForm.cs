@@ -1,26 +1,52 @@
-﻿using CakePrizeDB.Services;
+using CakePrizeDB.Services;
 using Microsoft.Data.SqlClient;
 using CakePrizeView.Utils;
+using CakePrizeCore.libs.DBUtils;
 
 namespace CakePrizeView.Forms.ingredients
 {
-    public partial class IngredientForm : Form
+    public partial class IngredientForm : BaseForm
     {
         private Form previousForm;
         private UnitTypeService unitTypeService;
         private BrandService brandService;
         private IngredientService ingredientService;
 
-        public IngredientForm(Form previousForm, SqlConnection sqlConnection)
+        public IngredientForm(Form previousForm, SqlConnection? sqlConnection = null)
         {
+            unitTypeService = new UnitTypeService();
+            brandService = new BrandService();
+            ingredientService = new IngredientService();
             InitializeComponent();
             this.previousForm = previousForm;
-            unitTypeService = new UnitTypeService(sqlConnection);
-            brandService = new BrandService(sqlConnection);
-            ingredientService = new IngredientService(sqlConnection);
+            
+            // Initialize services after InitializeComponent to ensure proper connection state
+            InitializeServices();
             
             // Set up auto-maximize
             FormMaximizeHelper.SetupAutoMaximize(this);
+        }
+
+        /// <summary>
+        /// Initializes all services with fresh connections
+        /// </summary>
+        private void InitializeServices()
+        {
+            try
+            {
+                // Create fresh connections for each service to ensure they're open and available
+                var connection = DatabaseConnectionManager.OpenConnection();
+                
+                unitTypeService = new UnitTypeService();
+                brandService = new BrandService();
+                ingredientService = new IngredientService();
+            }
+            catch (Exception ex)
+            {
+                // If we can't create services, show error but don't crash the form
+                MessageBox.Show($"Failed to initialize database services: {ex.Message}", "Initialization Error", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void FrmIngredients_Load(object sender, EventArgs e)
@@ -86,13 +112,14 @@ namespace CakePrizeView.Forms.ingredients
         {
             string selectedPrice = chkbDefaultRetail.CheckState == 0 ? "Wholesale" : "Retail";
             string createdModifiedUser = "Marco Llano";
+            var ingredientBrandId = cmbIngredientBrand.Text != string.Empty ? Guid.Parse(GetAllBrands().Where(d => d.Value == cmbIngredientBrand.Text)
+                .Select(t => t.Key).First().ToString() ?? string.Empty) : null;
             var unitSelected = cmbIngredientBrand.Text;
             ingredientService.CreateIngredient(
                 txtIngredientName.Text,
                 Guid.Parse(GetAllUnitTypes().Where(d => d.Value == cmbIngredientUnits.Text)
                 .Select(t => t.Key).First().ToString() ?? string.Empty),
-                Guid.Parse(GetAllBrands().Where(d => d.Value == cmbIngredientBrand.Text)
-                .Select(t => t.Key).First().ToString() ?? string.Empty),
+                ingredientBrandId,
                 float.Parse(txtRetailPrice.Text),
                 float.Parse(txtWholesalePrice.Text),
                 selectedPrice,
@@ -152,3 +179,4 @@ namespace CakePrizeView.Forms.ingredients
         }
     }
 }
+

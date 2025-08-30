@@ -1,6 +1,7 @@
-﻿using CakePrizeDB.Services;
+using CakePrizeDB.Services;
 using Microsoft.Data.SqlClient;
 using CakePrizeView.Utils;
+using CakePrizeCore.libs.DBUtils;
 
 namespace CakePrizeView.Forms.ingredients
 {
@@ -13,12 +14,14 @@ namespace CakePrizeView.Forms.ingredients
         private Size initialFormSize;
         private Dictionary<Control, Rectangle> initialControlBounds;
 
-        public BrandForm(Form previousForm, SqlConnection sqlConnection)
+        public BrandForm(Form previousForm, SqlConnection? sqlConnection = null)
         {
             initialControlBounds = new Dictionary<Control, Rectangle>();
             InitializeComponent();
             this.previousForm = previousForm;
-            brandService = new BrandService(sqlConnection);
+            
+            // Initialize services after InitializeComponent to ensure proper connection state
+            InitializeServices();
             
             // Add resize event handler
             Resize += BrandForm_Resize;
@@ -28,6 +31,26 @@ namespace CakePrizeView.Forms.ingredients
             
             // Set up auto-maximize
             FormMaximizeHelper.SetupAutoMaximize(this);
+        }
+
+        /// <summary>
+        /// Initializes all services with fresh connections
+        /// </summary>
+        private void InitializeServices()
+        {
+            try
+            {
+                // Create fresh connections for each service to ensure they're open and available
+                var connection = DatabaseConnectionManager.OpenConnection();
+                
+                brandService = new BrandService();
+            }
+            catch (Exception ex)
+            {
+                // If we can't create services, show error but don't crash the form
+                MessageBox.Show($"Failed to initialize database services: {ex.Message}", "Initialization Error", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void FrmBrands_Load(object sender, EventArgs e)
@@ -138,3 +161,4 @@ namespace CakePrizeView.Forms.ingredients
         }
     }
 }
+

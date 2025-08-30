@@ -1,5 +1,6 @@
 using CakePrizeDB.Services;
 using CakePrizeView.Forms;
+using CakePrizeCore.libs.DBUtils;
 using Microsoft.Data.SqlClient;
 
 namespace CakePrizeView
@@ -37,8 +38,15 @@ namespace CakePrizeView
                 
                 // Log to console if running from command line
                 Console.WriteLine($"FATAL ERROR: {errorMessage}");
-                LogsService logsService = new LogsService(OpenDBConnection());
-                logsService.CreateLog(errorMessage, "Error", "Marco Llano");
+                try
+                {
+                    var logsService = new LogsService();
+                    logsService.CreateLog(errorMessage, "Error", "Marco Llano");
+                }
+                catch
+                {
+                    // If logging fails, just continue - we already showed the error to the user
+                }
             }
         }
         
@@ -49,53 +57,38 @@ namespace CakePrizeView
         {
             try
             {
-                // First, try to get the connection string to see if configuration is loaded
-                string connectionString = CakePrizeCore.libs.DBUtils.DBUtils.GetConnectionString();
+                // Test the connection using centralized environment-aware connection management
+                var connectionInfo = DatabaseConnectionManager.GetConnectionInfo();
                 
-                if (string.IsNullOrWhiteSpace(connectionString))
+                if (!connectionInfo.IsTestConnection)
                 {
                     MessageBox.Show(
-                        "Database configuration not found. Please check:\n" +
-                        "1. App.config file exists and contains 'CakePrize' connection string\n" +
-                        "2. App.config is copied to the output directory\n" +
-                        "3. Connection string format is correct\n\n" +
+                        $"Database connection failed for environment '{connectionInfo.Environment}'.\n\n" +
+                        $"Server: {connectionInfo.Server}\n" +
+                        $"Database: {connectionInfo.Database}\n\n" +
+                        "Please check:\n" +
+                        "1. SQL Server is running\n" +
+                        "2. Server is accessible\n" +
+                        "3. Database exists\n" +
+                        "4. Credentials are correct\n" +
+                        "5. Environment configuration is correct\n\n" +
                         "The application will continue but database features may not work.",
-                        "Configuration Warning",
+                        "Database Connection Warning",
                         MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
-                }
-
-                // Test the connection
-                using (var connection = CakePrizeCore.libs.DBUtils.DBUtils.CreateConnection())
-                {
-                    OpenDBConnection();
-                    connection.Close();
                 }
                 
                 // Connection successful - no message needed
             }
             catch (Exception ex)
             {
-                string errorMessage = $"Database connection failed. Please check:\n\n" +
-                                    $"1. SQL Server is running\n" +
-                                    $"2. Server 'MARCOLLANO' is accessible\n" +
-                                    $"3. Database 'CakePrize' exists\n" +
-                                    $"4. Credentials are correct\n\n" +
+                string errorMessage = $"Database connection test failed.\n\n" +
                                     $"Error Details: {ex.Message}\n\n" +
-                                    $"The application will continue but database features may not work.";
+                                    "Please check your environment configuration and database setup.\n" +
+                                    "The application will continue but database features may not work.";
                 
                 MessageBox.Show(errorMessage, "Database Connection Warning", 
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
-        }
-
-        private static SqlConnection OpenDBConnection()
-        {
-            using (var connection = CakePrizeCore.libs.DBUtils.DBUtils.CreateConnection())
-            {
-                connection.Open();
-                connection.Close();
-                return connection;
             }
         }
     }

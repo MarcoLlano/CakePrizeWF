@@ -1,10 +1,12 @@
 using CakePrizeDB.Services;
 using CakePrizeView.Utils;
+using CakePrizeCore.libs.DBUtils;
+using CakePrizeCore.libs.Configuration;
 using Microsoft.Data.SqlClient;
 
 namespace CakePrizeView
 {
-    public partial class CalculatorForm : Form
+    public partial class CalculatorForm : BaseForm
     {
         private Form previousForm;
         private ProductService productService;
@@ -12,23 +14,23 @@ namespace CakePrizeView
         private IngredientService ingredientService;
         private UnitTypeService unitTypeService;
         private ProductPhotoService productPhotoService;
+        private LogsService logsService;
+
 
 
         // Store initial form size for relative positioning
         private Size initialFormSize;
         private Dictionary<Control, Rectangle> initialControlBounds;
 
-        public CalculatorForm(Form previousForm, SqlConnection sqlConnection)
+        public CalculatorForm(Form previousForm, SqlConnection? sqlConnection = null)
         {
-            productService = new ProductService(sqlConnection);
-            productIngredientService = new ProductIngredientService(sqlConnection);
-            ingredientService = new IngredientService(sqlConnection);
-            unitTypeService = new UnitTypeService(sqlConnection);
-            productPhotoService = new ProductPhotoService(sqlConnection);
             initialControlBounds = new Dictionary<Control, Rectangle>();
 
             InitializeComponent();
             this.previousForm = previousForm;
+            
+            // Initialize services after InitializeComponent to ensure proper connection state
+            InitializeServices();
 
             
             // Add resize event handler
@@ -39,6 +41,47 @@ namespace CakePrizeView
             
             // Set up auto-maximize
             FormMaximizeHelper.SetupAutoMaximize(this);
+        }
+
+        /// <summary>
+        /// Initializes all services with fresh connections
+        /// </summary>
+        private void InitializeServices()
+        {
+            try
+            {
+                // Clear connection cache and reset environment to force re-reading
+                EnvironmentConfig.Reset();
+                DatabaseConnectionManager.ClearCache();
+                
+                // Create services using centralized connection management
+                productService = new ProductService();
+                productIngredientService = new ProductIngredientService();
+                ingredientService = new IngredientService();
+                unitTypeService = new UnitTypeService();
+                productPhotoService = new ProductPhotoService();
+                logsService = new LogsService();
+                
+                // Log successful initialization
+                logsService.CreateLog("CalculatorForm services initialized successfully", "Info", "System");
+            }
+            catch (Exception ex)
+            {
+                // If we can't create services, show error but don't crash the form
+                MessageBox.Show($"Failed to initialize database services: {ex.Message}", "Initialization Error", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                
+                // Create a minimal logs service for error reporting
+                try
+                {
+                    logsService = new LogsService();
+                    logsService.CreateLog($"Failed to initialize CalculatorForm services: {ex.Message}", "Error", "System");
+                }
+                catch
+                {
+                    // If even logging fails, just continue without services
+                }
+            }
         }
 
         private void UpdateTotalLabel()
@@ -149,11 +192,123 @@ namespace CakePrizeView
 
         private void FrmCupcake_Load(object sender, EventArgs e)
         {
-            foreach (var item in productService.GetAllProducts())
+            RefreshProductList();
+        }
+
+        /// <summary>
+        /// Refreshes the product list from the current environment database
+        /// This ensures the TSCmbProductList always shows data from the correct environment
+        /// </summary>
+        private void RefreshProductList()
+        {
+            try
             {
-                TSCmbProductList.Items.Add(item.Name); 
+                // Clear connection cache and reset environment to force re-reading
+                EnvironmentConfig.Reset();
+                DatabaseConnectionManager.ClearCache();
+                
+                TSCmbProductList.Items.Clear();
+                var products = productService.GetAllProducts();
+                
+                foreach (var item in products)
+                {
+                    TSCmbProductList.Items.Add(item.Name);
+                }
+                
+                // Log how many products were loaded
+                logsService.CreateLog($"Loaded {products.Count()} products", "Info", "System");
             }
-            
+            catch (Exception ex)
+            {
+                logsService.CreateLog($"Failed to refresh product list: {ex.Message}", "Error", "System");
+                MessageBox.Show($"Failed to load products: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// Public method to refresh the product list when environment changes
+        /// This can be called from parent forms or other components
+        /// </summary>
+        public void RefreshProductListFromCurrentEnvironment()
+        {
+            RefreshProductList();
+        }
+
+        /// <summary>
+        /// Forces a complete refresh of all services and product list with fresh connections
+        /// This should be called when environment changes to ensure all data comes from the correct database
+        /// </summary>
+        public void ForceRefreshAllWithFreshConnections()
+        {
+            try
+            {
+                // Dispose existing services to free up connections
+                productService = null;
+                productIngredientService = null;
+                ingredientService = null;
+                unitTypeService = null;
+                productPhotoService = null;
+                logsService = null;
+
+                // Force environment to Testing and clear all caches
+                EnvironmentConfig.ForceEnvironment(EnvironmentConfig.Environment.Testing);
+                DatabaseConnectionManager.ClearCache();
+
+                // Reinitialize all services with fresh connections
+                InitializeServices();
+
+                // Refresh the product list
+                RefreshProductList();
+
+                MessageBox.Show("All services and product list refreshed with fresh connections from current environment.", 
+                    "Refresh Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to refresh services: {ex.Message}", "Error", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// Forces a refresh of the product list with a completely fresh connection
+        /// This ensures we're using the current environment configuration
+        /// </summary>
+        public void ForceRefreshProductListWithFreshConnection()
+        {
+            try
+            {
+                // Create a fresh service to ensure we're using current environment
+                var freshProductService = new ProductService();
+                
+                // Get connection info for debugging
+                var connectionInfo = DatabaseConnectionManager.GetConnectionInfo();
+                var currentEnvironment = EnvironmentConfig.CurrentEnvironment;
+                
+                // Log the current environment and connection details
+                logsService.CreateLog(
+                    $"Force refreshing product list with fresh connection - Environment: {currentEnvironment}, " +
+                    $"Database: {connectionInfo.Database}, Server: {connectionInfo.Server}", 
+                    "Info", "System");
+                
+                TSCmbProductList.Items.Clear();
+                var products = freshProductService.GetAllProducts();
+                
+                foreach (var item in products)
+                {
+                    TSCmbProductList.Items.Add(item.Name);
+                }
+                
+                // Log how many products were loaded
+                logsService.CreateLog(
+                    $"Force refresh loaded {products.Count()} products from {connectionInfo.Database} database", 
+                    "Info", "System");
+            }
+            catch (Exception ex)
+            {
+                logsService.CreateLog($"Failed to force refresh product list: {ex.Message}", "Error", "System");
+                MessageBox.Show($"Failed to force refresh products: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void PnlIngredients_Click(object sender, EventArgs e)
@@ -189,20 +344,28 @@ namespace CakePrizeView
 
         private void CmbCupcakeList_SelectedValueChanged(object sender, EventArgs e)
         {
-            PnlIngredients.Controls.Clear();
-            var productId = productService.GetAllProducts()
-                .Where(product => product.Name == TSCmbProductList.Text)
-                .Select(item => item.Id).First();
-            var test = productIngredientService.GetProductIngredientByProductId(productId);
+            try
+            {
+                PnlIngredients.Controls.Clear();
+                var productId = productService.GetAllProducts()
+                    .Where(product => product.Name == TSCmbProductList.Text)
+                    .Select(item => item.Id).First();
+                var test = productIngredientService.GetProductIngredientByProductId(productId);
 
-            var prodIngredients = productIngredientService.GetProductIngredientByProductId(productId)
-                .Where(prodId => prodId.ProductId == productId).Select(item => item.IngredientId).ToList();
+                var prodIngredients = productIngredientService.GetProductIngredientByProductId(productId)
+                    .Where(prodId => prodId.ProductId == productId).Select(item => item.IngredientId).ToList();
 
-            CreateIngredientRows(prodIngredients);
-            UpdateTotalLabel();
+                CreateIngredientRows(prodIngredients);
+                UpdateTotalLabel();
 
-            LblFormTitle.Text = TSCmbProductList.Text;
-            LoadImage(sender, e, productId);
+                LblFormTitle.Text = TSCmbProductList.Text;
+                LoadImage(sender, e, productId);
+            }
+            catch (Exception ex)
+            {
+                logsService.CreateLog(ex.Message, "Error", "Marco Llano");
+                throw;
+            }
         }
 
         private void btnBack_Click(object sender, EventArgs e)
@@ -217,9 +380,12 @@ namespace CakePrizeView
             previousForm.Close();
         }
 
+
+
         private void TSMenuItem_Click(object sender, EventArgs e)
         {
-            TSCmbProductList.Items.Clear();
+            // Refresh the product list to ensure it's using the current environment
+            RefreshProductList();
             TSLblSelectedCake.Text = sender.ToString();
         }
 
@@ -327,3 +493,4 @@ namespace CakePrizeView
     }
 
 }
+

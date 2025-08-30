@@ -1,15 +1,17 @@
-﻿using CakePrizeDB.Models;
+using CakePrizeDB.Models;
 using CakePrizeDB.Repositories;
-using Microsoft.Data.SqlClient;
+using CakePrizeCore.libs.DBUtils;
 
 namespace CakePrizeDB.Services
 {
     public class IngredientService
     {
         private readonly IngredientRepository _repository;
-        public IngredientService(SqlConnection sqlConnection)
+        public IngredientService()
         {
-            _repository = new IngredientRepository(sqlConnection);
+            // Use centralized connection management
+            var connection = DatabaseConnectionManager.OpenConnection();
+            _repository = new IngredientRepository(connection);
         }
 
         /// <summary>
@@ -66,3 +68,4 @@ namespace CakePrizeDB.Services
         }
     }
 }
+

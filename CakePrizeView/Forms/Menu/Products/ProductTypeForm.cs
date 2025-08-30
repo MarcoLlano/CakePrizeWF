@@ -1,25 +1,27 @@
-﻿using CakePrizeDB.Services;
+using CakePrizeDB.Services;
 using CakePrizeView.Utils;
+using CakePrizeCore.libs.DBUtils;
 using Microsoft.Data.SqlClient;
 
 namespace CakePrizeView.Forms.Menu.Products
 {
-    public partial class ProductTypeForm : Form
+    public partial class ProductTypeForm : BaseForm
     {
         private Form previousForm;
-        private SqlConnection sqlConnection;
         private ProductTypeService prodTypeService;
 
         // Store initial form size for relative positioning
         private Size initialFormSize;
         private Dictionary<Control, Rectangle> initialControlBounds;
 
-        public ProductTypeForm(Form previousForm, SqlConnection sqlConnection)
+        public ProductTypeForm(Form previousForm, SqlConnection? sqlConnection = null)
         {
             initialControlBounds = new Dictionary<Control, Rectangle>();
             InitializeComponent();
             this.previousForm = previousForm;
-            prodTypeService = new ProductTypeService(sqlConnection);
+            
+            // Initialize services after InitializeComponent to ensure proper connection state
+            InitializeServices();
 
             // Add resize event handler
             this.Resize += ProductTypeForm_Resize;
@@ -29,6 +31,26 @@ namespace CakePrizeView.Forms.Menu.Products
 
             // Set up auto-maximize
             FormMaximizeHelper.SetupAutoMaximize(this);
+        }
+
+        /// <summary>
+        /// Initializes all services with fresh connections
+        /// </summary>
+        private void InitializeServices()
+        {
+            try
+            {
+                // Create fresh connections for each service to ensure they're open and available
+                var connection = DatabaseConnectionManager.OpenConnection();
+                
+                prodTypeService = new ProductTypeService();
+            }
+            catch (Exception ex)
+            {
+                // If we can't create services, show error but don't crash the form
+                MessageBox.Show($"Failed to initialize database services: {ex.Message}", "Initialization Error", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         /// <summary>
@@ -137,3 +159,4 @@ namespace CakePrizeView.Forms.Menu.Products
         }
     }
 }
+

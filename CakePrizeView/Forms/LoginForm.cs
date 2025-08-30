@@ -1,4 +1,4 @@
-﻿using CakePrizeCore.libs.DBUtils;
+using CakePrizeCore.libs.DBUtils;
 using CakePrizeDB.Services;
 using CakePrizeView.Utils;
 using Microsoft.Data.SqlClient;
@@ -48,8 +48,9 @@ namespace CakePrizeView.Forms
         {
             try
             {
-                sqlConnection = DBUtils.OpenDBConnection();
-                userService = new UserService(sqlConnection);
+                // Use centralized environment-aware connection management
+                sqlConnection = DatabaseConnectionManager.OpenConnection();
+                userService = new UserService();
             }
             catch (Exception ex)
             {
@@ -92,10 +93,10 @@ namespace CakePrizeView.Forms
 
         private void Login()
         {
-            string missingCredentialsText = "Usuario y contraseña son requeridos.";
-            string invalidCredentialsText = "Usuario o contraseña incorrectos.";
+            string missingCredentialsText = "Usuario y contrase�a son requeridos.";
+            string invalidCredentialsText = "Usuario o contrase�a incorrectos.";
             string disabledUserText = "Usuario desactivado. Contacte al administrador.";
-            string databaseErrorText = "Error de conexión a la base de datos. Intente nuevamente.";
+            string databaseErrorText = "Error de conexi�n a la base de datos. Intente nuevamente.";
 
             if (string.IsNullOrWhiteSpace(TxtUsername.Text) || string.IsNullOrWhiteSpace(TxtPassword.Text))
             {
@@ -128,7 +129,7 @@ namespace CakePrizeView.Forms
                     UserSession.SetCurrentUser(authenticatedUser);
 
                     Hide();
-                    FormHomePageForm formMainForm = new FormHomePageForm(FindForm() ?? new FrmLoginForm(), sqlConnection);
+                    FormHomePageForm formMainForm = new FormHomePageForm(FindForm() ?? new FrmLoginForm(), null);
                     formMainForm.Show();
                 }
                 else
@@ -138,7 +139,7 @@ namespace CakePrizeView.Forms
             }
             catch (Exception ex)
             {
-                LblErrorUserPwd.Text = $"Error de autenticación: {ex.Message}";
+                LblErrorUserPwd.Text = $"Error de autenticaci�n: {ex.Message}";
             }
         }
 
@@ -248,3 +249,4 @@ namespace CakePrizeView.Forms
         }
     }
 }
+

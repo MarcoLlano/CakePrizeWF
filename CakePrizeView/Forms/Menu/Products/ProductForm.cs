@@ -1,6 +1,7 @@
-﻿using CakePrizeDB.Models;
+using CakePrizeDB.Models;
 using CakePrizeDB.Services;
 using CakePrizeView.Utils;
+using CakePrizeCore.libs.DBUtils;
 using Microsoft.Data.SqlClient;
 
 namespace CakePrizeView.Forms.Menu.Products
@@ -14,7 +15,9 @@ namespace CakePrizeView.Forms.Menu.Products
         private ProductIngredientService productIngredientService;
         private ProductPhotoService productPhotoService;
         private ProductSizeService productSizeService;
+        private BrandService brandService;
         private LogsService logsService;
+        private UserService userService;
         private string fileName;
         private string fullFileName;
 
@@ -22,20 +25,26 @@ namespace CakePrizeView.Forms.Menu.Products
         private Size initialFormSize;
         private Dictionary<Control, Rectangle> initialControlBounds;
 
-        public ProductForm(Form previousForm, SqlConnection sqlConnection)
+        public ProductForm(Form previousForm, SqlConnection? sqlConnection = null)
         {
+            brandService = new BrandService();
+            prodTypeService = new ProductTypeService();
+            productIngredientService = new ProductIngredientService();
+            productPhotoService = new ProductPhotoService();
+            productSizeService = new ProductSizeService();
+            ingredientService = new IngredientService();
+            productService = new ProductService();
+            logsService = new LogsService();
+            userService = new UserService();
+
             this.previousForm = previousForm;
-            prodTypeService = new ProductTypeService(sqlConnection);
-            ingredientService = new IngredientService(sqlConnection);
-            productService = new ProductService(sqlConnection);
-            productIngredientService = new ProductIngredientService(sqlConnection);
-            productPhotoService = new ProductPhotoService(sqlConnection);
-            productSizeService = new ProductSizeService(sqlConnection);
-            logsService = new LogsService(sqlConnection);
             initialControlBounds = new Dictionary<Control, Rectangle>();
             fileName = string.Empty;
             fullFileName = string.Empty;
             InitializeComponent();
+            
+            // Initialize services after InitializeComponent to ensure proper connection state
+            InitializeServices();
 
             // Add resize event handler
             this.Resize += ProductForm_Resize;
@@ -48,6 +57,32 @@ namespace CakePrizeView.Forms.Menu.Products
 
             // Set up ComboBox functionality
             SetupComboBoxes();
+        }
+
+        /// <summary>
+        /// Initializes all services with fresh connections
+        /// </summary>
+        private void InitializeServices()
+        {
+            try
+            {
+                // Create fresh connections for each service to ensure they're open and available
+                var connection = DatabaseConnectionManager.OpenConnection();
+                
+                prodTypeService = new ProductTypeService();
+                ingredientService = new IngredientService();
+                productService = new ProductService();
+                productIngredientService = new ProductIngredientService();
+                productPhotoService = new ProductPhotoService();
+                productSizeService = new ProductSizeService();
+                logsService = new LogsService();
+            }
+            catch (Exception ex)
+            {
+                // If we can't create services, show error but don't crash the form
+                MessageBox.Show($"Failed to initialize database services: {ex.Message}", "Initialization Error", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         /// <summary>
@@ -126,9 +161,11 @@ namespace CakePrizeView.Forms.Menu.Products
 
         private void GetAllIngredients(object sender, EventArgs e)
         {
+            
             foreach (var item in ingredientService.GetAllIngredients())
             {
-                cbProductIngredient.Items.Add($"{item.Name}");
+                cbProductIngredient.Items.Add($"{item.Name} - " +
+                    $"{brandService?.GetBrandById(item.BrandId)?.Name}");
             }
         }
 
@@ -415,3 +452,4 @@ namespace CakePrizeView.Forms.Menu.Products
         }
     }
 }
+

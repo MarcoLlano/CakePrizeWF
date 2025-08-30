@@ -1,4 +1,4 @@
-﻿using Microsoft.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using CakePrizeView.Utils;
 
 namespace CakePrizeView.Forms.Menu.Products
@@ -19,3 +19,4 @@ namespace CakePrizeView.Forms.Menu.Products
         }
     }
 }
+

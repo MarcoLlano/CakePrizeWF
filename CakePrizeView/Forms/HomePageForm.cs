@@ -1,4 +1,4 @@
-﻿using CakePrizeView.Forms;
+using CakePrizeView.Forms;
 using CakePrizeView.Forms.ingredients;
 using CakePrizeView.Forms.Menu;
 using CakePrizeView.Forms.Menu.Products;
@@ -8,20 +8,18 @@ using System.Collections.Generic;
 
 namespace CakePrizeView
 {
-    public partial class FormHomePageForm : Form
+    public partial class FormHomePageForm : BaseForm
     {
         private Form previousForm;
-        private SqlConnection sqlConnection;
 
         // Store initial form size for relative positioning
         private Size initialFormSize;
         private Dictionary<Control, Rectangle> initialControlBounds;
 
-        public FormHomePageForm(Form previousForm, SqlConnection sqlConnection)
+        public FormHomePageForm(Form previousForm, SqlConnection? sqlConnection = null)
         {
             InitializeComponent();
             this.previousForm = previousForm;
-            this.sqlConnection = sqlConnection;
 
             // Add resize event handler
             this.Resize += HomePageForm_Resize;
@@ -63,63 +61,63 @@ namespace CakePrizeView
         private void ingredientesToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Hide();
-            IngredientForm formCupcake = new IngredientForm(FindForm() ?? new ErrorNotFoundForm(), sqlConnection);
+            IngredientForm formCupcake = new IngredientForm(FindForm() ?? new ErrorNotFoundForm(), null);
             formCupcake.Show();
         }
 
         private void marcasToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Hide();
-            BrandForm formCupcake = new BrandForm(FindForm() ?? new ErrorNotFoundForm(), sqlConnection);
+            BrandForm formCupcake = new BrandForm(FindForm() ?? new ErrorNotFoundForm(), null);
             formCupcake.Show();
         }
 
         private void calculadoraToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Hide();
-            CalculatorForm calculatorForm = new CalculatorForm(FindForm() ?? new ErrorNotFoundForm(), sqlConnection);
+            CalculatorForm calculatorForm = new CalculatorForm(FindForm() ?? new ErrorNotFoundForm(), null);
             calculatorForm.Show();
         }
 
         private void unidadToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Hide();
-            ProductForm productUnitForm = new ProductForm(FindForm() ?? new ErrorNotFoundForm(), sqlConnection);
+            ProductForm productUnitForm = new ProductForm(FindForm() ?? new ErrorNotFoundForm(), null);
             productUnitForm.Show();
         }
 
         private void armarCombosToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Hide();
-            ProductSetForm productSetForm = new ProductSetForm(FindForm() ?? new ErrorNotFoundForm(), sqlConnection);
+            ProductSetForm productSetForm = new ProductSetForm(FindForm() ?? new ErrorNotFoundForm(), null);
             productSetForm.Show();
         }
 
         private void combosEspecialesToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Hide();
-            ProductSpecialComboForm productSpecialComboForm = new ProductSpecialComboForm(FindForm() ?? new ErrorNotFoundForm(), sqlConnection);
+            ProductSpecialComboForm productSpecialComboForm = new ProductSpecialComboForm(FindForm() ?? new ErrorNotFoundForm(), null);
             productSpecialComboForm.Show();
         }
 
         private void promocionesToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Hide();
-            ProductPromosForm productPromosForm = new ProductPromosForm(FindForm() ?? new ErrorNotFoundForm(), sqlConnection);
+            ProductPromosForm productPromosForm = new ProductPromosForm(FindForm() ?? new ErrorNotFoundForm(), null);
             productPromosForm.Show();
         }
 
         private void usuariosToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Hide();
-            UserManagementForm userManagementForm = new UserManagementForm(FindForm() ?? new ErrorNotFoundForm(), sqlConnection);
+            UserManagementForm userManagementForm = new UserManagementForm(FindForm() ?? new ErrorNotFoundForm(), null);
             userManagementForm.Show();
         }
 
         private void tiposDeProductosToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Hide();
-            ProductTypeForm prodTypeFrm = new ProductTypeForm(FindForm() ?? new ErrorNotFoundForm(), sqlConnection);
+            ProductTypeForm prodTypeFrm = new ProductTypeForm(FindForm() ?? new ErrorNotFoundForm(), null);
             prodTypeFrm.Show();
         }
 
@@ -167,7 +165,7 @@ namespace CakePrizeView
         private void ShowAccessDeniedMessage()
         {
             MessageBox.Show(
-                "No tiene permisos para acceder a esta función.",
+                "No tiene permisos para acceder a esta funci�n.",
                 "Acceso Denegado",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Warning);
@@ -260,8 +258,9 @@ namespace CakePrizeView
         private void btnCalculatorFrm_Click(object sender, EventArgs e)
         {
             Hide();
-            CalculatorForm calculatorForm = new CalculatorForm(FindForm() ?? new ErrorNotFoundForm(), sqlConnection);
+            CalculatorForm calculatorForm = new CalculatorForm(FindForm() ?? new ErrorNotFoundForm(), null);
             calculatorForm.Show();
         }
     }
 }
+
