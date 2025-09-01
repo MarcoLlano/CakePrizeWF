@@ -5,7 +5,7 @@
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public Guid UnitTypeId { get; set; }
-        public Guid BrandId { get; set; }
+        public Guid? BrandId { get; set; }
         public float RetailPrice { get; set; } = 0;
         public float WholesalePrice { get; set; } = 0;
         public string DefaultPrice { get; set; } = string.Empty;

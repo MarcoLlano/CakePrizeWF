@@ -30,7 +30,7 @@ namespace CakePrizeDB.Repositories
                     Id = reader.GetGuid(0),
                     Name = reader.GetString(1),
                     UnitTypeId = reader.GetGuid(2),
-                    BrandId = reader.GetGuid(3),
+                    BrandId = reader.IsDBNull(3) ? null : reader.GetGuid(3),
                     RetailPrice = (float) reader.GetDouble(4),
                     WholesalePrice = (float) reader.GetDouble(5),
                     DefaultPrice = reader.GetString(6),
@@ -58,7 +58,7 @@ namespace CakePrizeDB.Repositories
                     Id = reader.GetGuid(0),
                     Name = reader.GetString(1),
                     UnitTypeId = reader.GetGuid(2),
-                    BrandId = reader.GetGuid(3),
+                    BrandId = reader.IsDBNull(3) ? null : reader.GetGuid(3),
                     RetailPrice = (float)reader.GetDouble(4),
                     WholesalePrice = (float)reader.GetDouble(5),
                     DefaultPrice = reader.GetString(6),
@@ -79,7 +79,17 @@ namespace CakePrizeDB.Repositories
             command.Parameters.AddWithValue("@Id", ingredient.Id);
             command.Parameters.AddWithValue("@Name", ingredient.Name);
             command.Parameters.AddWithValue("@UnitTypeId", ingredient.UnitTypeId);
-            command.Parameters.AddWithValue("@BrandId", ingredient.BrandId);
+            
+            // Handle nullable BrandId - use DBNull.Value when null
+            if (ingredient.BrandId.HasValue)
+            {
+                command.Parameters.AddWithValue("@BrandId", ingredient.BrandId.Value);
+            }
+            else
+            {
+                command.Parameters.AddWithValue("@BrandId", DBNull.Value);
+            }
+            
             command.Parameters.AddWithValue("@RetailPrice1K", ingredient.RetailPrice);
             command.Parameters.AddWithValue("@WholesalePrice1K", ingredient.WholesalePrice);
             command.Parameters.AddWithValue("@DefaultPrice", ingredient.DefaultPrice);

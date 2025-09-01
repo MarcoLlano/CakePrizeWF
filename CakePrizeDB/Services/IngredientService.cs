@@ -39,10 +39,10 @@ namespace CakePrizeDB.Services
         /// <param name="name">The name of the ingredient (e.g., "Powder", "Milk")</param>
         /// <param name="acronym">The acronym (e.g., "g", "ml")</param>
         /// <returns>The created unit type with generated ID</returns>
-        public IngredientModel CreateIngredient(string name, Guid unitTypeId, Guid brandId, float retailPrice,
+        public IngredientModel CreateIngredient(string name, Guid unitTypeId, Guid? brandId, float retailPrice,
             float wholesalePrice, string defaultPrice, string comments, string createdUser, string modifiedUser)
         {
-            if(unitTypeId != Guid.Empty && brandId != Guid.Empty)
+            if(unitTypeId != Guid.Empty)
             {
                 var ingredient = new IngredientModel
                 {

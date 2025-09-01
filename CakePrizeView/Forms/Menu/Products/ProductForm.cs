@@ -3,6 +3,7 @@ using CakePrizeDB.Services;
 using CakePrizeView.Utils;
 using CakePrizeCore.libs.DBUtils;
 using Microsoft.Data.SqlClient;
+using CakePrizeCore.libs.utils;
 
 namespace CakePrizeView.Forms.Menu.Products
 {
@@ -164,8 +165,10 @@ namespace CakePrizeView.Forms.Menu.Products
             
             foreach (var item in ingredientService.GetAllIngredients())
             {
-                cbProductIngredient.Items.Add($"{item.Name} - " +
-                    $"{brandService?.GetBrandById(item.BrandId)?.Name}");
+                string brandName = item.BrandId.HasValue 
+                    ? brandService?.GetBrandById(item.BrandId.Value)?.Name ?? "Unknown Brand"
+                    : "No Brand";
+                cbProductIngredient.Items.Add($"{item.Name} - {brandName}");
             }
         }
 
@@ -190,8 +193,9 @@ namespace CakePrizeView.Forms.Menu.Products
         private void btnProdAddIngredientToList_Click(object sender, EventArgs e)
         {
             int rowIndex = gvProductIngredientList.Rows.Add();
-            gvProductIngredientList.Rows[rowIndex].Cells[0].Value = cbProductIngredient.Text;
+            gvProductIngredientList.Rows[rowIndex].Cells[0].Value = StringUtils.GetIngredientWithoutBrand(cbProductIngredient.Text);
             gvProductIngredientList.Rows[rowIndex].Cells[1].Value = txtProductIngrQty.Text;
+            gvProductIngredientList.Rows[rowIndex].Cells[2].Value = StringUtils.GetBrandWithoutIngredient(cbProductIngredient.Text);
         }
 
         private void txtProductIngredientImage_Click(object sender, EventArgs e)
@@ -303,11 +307,12 @@ namespace CakePrizeView.Forms.Menu.Products
             {
                 int totalWidth = gvProductIngredientList.Width - 20; // Account for scrollbar
 
-                // Set proportional widths (60% for ingredient, 40% for quantity)
+                // Set proportional widths (60% for ingredient, 20% for quantity and 20% for Brand)
                 if (gvProductIngredientList.Columns.Count >= 2)
                 {
                     gvProductIngredientList.Columns[0].Width = (int)(totalWidth * 0.6); // Ingredient column
-                    gvProductIngredientList.Columns[1].Width = (int)(totalWidth * 0.4); // Quantity column
+                    gvProductIngredientList.Columns[1].Width = (int)(totalWidth * 0.2); // Quantity column
+                    gvProductIngredientList.Columns[2].Width = (int)(totalWidth * 0.2); // Brand column
                 }
             }
         }
@@ -320,8 +325,8 @@ namespace CakePrizeView.Forms.Menu.Products
                 if (newProd != null)
                 {
                     var newProdPhoto = LinkProductAndPhoto(sender, e, newProd.Id);
-                    LinkProductAndSize(sender, e, newProd.Id);
-                    LinkProductAndIngredient(sender, e, newProd.Id);
+                    LinkProductAndSize(sender, e, newProd.Id, "Marco Llano");
+                    LinkProductAndIngredient(sender, e, newProd.Id, "Marco Llano");
                     
                     if (newProdPhoto != null)
                     {
@@ -354,26 +359,44 @@ namespace CakePrizeView.Forms.Menu.Products
         /// <summary>
         /// Links a product with its ingredients by iterating through the DataGridView rows
         /// </summary>
-        private void LinkProductAndIngredient(object sender, EventArgs e, Guid productId)
+        private void LinkProductAndIngredient(object sender, EventArgs e, Guid productId, string createdUser)
         {
             try
             {
                 // Iterate through all rows in the DataGridView
-                for (int rowIndex = 0; rowIndex < gvProductIngredientList.Rows.Count; rowIndex++)
+                for (int rowIndex = 0; rowIndex < gvProductIngredientList.Rows.Count - 1; rowIndex++)
                 {
                     // Get the ingredient name from the first column (index 0)
                     string ingredientName = gvProductIngredientList.Rows[rowIndex].Cells[0].Value.ToString();
-                    
+                    string brandName = gvProductIngredientList.Rows[rowIndex].Cells[2].Value.ToString();
+
+                    var brandId = brandService.GetAllBrands()
+                            .Where(d => d.Name == brandName)
+                            .Select(t => t.Id)
+                            .FirstOrDefault();
+
                     // Get the quantity from the second column (index 1)
                     string quantityText = gvProductIngredientList.Rows[rowIndex].Cells[1].Value.ToString();
                     
                     if (!string.IsNullOrEmpty(ingredientName) && !string.IsNullOrEmpty(quantityText))
                     {
                         // Find the ingredient ID by name using the local ingredientList dictionary
-                        var ingredientId = ingredientService.GetAllIngredients()
+                        var ingredientId = Guid.Empty;
+                        if (brandName == "No Brand")
+                        {
+                            ingredientId = ingredientService.GetAllIngredients()
                             .Where(d => d.Name == ingredientName)
                             .Select(t => t.Id)
                             .FirstOrDefault();
+                        }
+                        else
+                        {
+                            ingredientId = ingredientService.GetAllIngredients()
+                                .Where(d => d.Name == ingredientName && d.BrandId == brandId)
+                                .Select(t => t.Id)
+                                .FirstOrDefault();
+                        }
+                        
                         
                         if (ingredientId != Guid.Empty)
                         {
@@ -385,8 +408,8 @@ namespace CakePrizeView.Forms.Menu.Products
                                     productId,
                                     ingredientId,
                                     quantity,
-                                    "Marco Llano",
-                                    "Marco Llano");
+                                    createdUser,
+                                    createdUser);
                             }
                             else
                             {
@@ -435,15 +458,15 @@ namespace CakePrizeView.Forms.Menu.Products
             }
         }
 
-        private ProductSizeModel LinkProductAndSize(object sender, EventArgs e, Guid productId)
+        private ProductSizeModel LinkProductAndSize(object sender, EventArgs e, Guid productId, string createUser)
         {
             return productSizeService.CreateProductSize(
                 productId,
                 txtProductPortionsPerPrep.Text,
                 cbProductSize.Text,
                 richTBProdComments.Text,
-                "Marco Llano",
-                "Marco Llano");
+                createUser,
+                createUser);
         }
 
         private void ClearFields(object sender, EventArgs e)

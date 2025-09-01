@@ -112,9 +112,18 @@ namespace CakePrizeView.Forms.ingredients
         {
             string selectedPrice = chkbDefaultRetail.CheckState == 0 ? "Wholesale" : "Retail";
             string createdModifiedUser = "Marco Llano";
-            var ingredientBrandId = cmbIngredientBrand.Text != string.Empty ? Guid.Parse(GetAllBrands().Where(d => d.Value == cmbIngredientBrand.Text)
-                .Select(t => t.Key).First().ToString() ?? string.Empty) : null;
-            var unitSelected = cmbIngredientBrand.Text;
+            
+            // Handle ingredientBrandId - set to null if no brand is selected or brand doesn't exist
+            Guid? ingredientBrandId = null;
+            if (!string.IsNullOrEmpty(cmbIngredientBrand.Text))
+            {
+                var brandMatch = GetAllBrands().FirstOrDefault(d => d.Value == cmbIngredientBrand.Text);
+                if (brandMatch.Key != Guid.Empty)
+                {
+                    ingredientBrandId = brandMatch.Key;
+                }
+            }
+            
             ingredientService.CreateIngredient(
                 txtIngredientName.Text,
                 Guid.Parse(GetAllUnitTypes().Where(d => d.Value == cmbIngredientUnits.Text)

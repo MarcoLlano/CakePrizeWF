@@ -1,8 +1,12 @@
+using CakePrize.libs.utils;
+using CakePrizeCore.libs.Configuration;
+using CakePrizeCore.libs.DBUtils;
+using CakePrizeCore.libs.utils;
+using CakePrizeDB.Models;
 using CakePrizeDB.Services;
 using CakePrizeView.Utils;
-using CakePrizeCore.libs.DBUtils;
-using CakePrizeCore.libs.Configuration;
 using Microsoft.Data.SqlClient;
+using static CakePrizeDB.Constants.DatabaseQueries;
 
 namespace CakePrizeView
 {
@@ -12,9 +16,13 @@ namespace CakePrizeView
         private ProductService productService;
         private ProductIngredientService productIngredientService;
         private IngredientService ingredientService;
+        private BrandService brandService;
         private UnitTypeService unitTypeService;
         private ProductPhotoService productPhotoService;
         private LogsService logsService;
+        private bool isUpdatingGrid;
+        private bool isRepopulating;
+        private Guid? lastSelectedProductId;
 
 
 
@@ -25,24 +33,109 @@ namespace CakePrizeView
         public CalculatorForm(Form previousForm, SqlConnection? sqlConnection = null)
         {
             initialControlBounds = new Dictionary<Control, Rectangle>();
+            brandService = new BrandService();
 
             InitializeComponent();
             this.previousForm = previousForm;
-            
+            isUpdatingGrid = false;
+            isRepopulating = false;
+            lastSelectedProductId = null;
+
             // Initialize services after InitializeComponent to ensure proper connection state
             InitializeServices();
 
-            
+            AttachGridEvents();
+            gvIngredientsInfo.ReadOnly = false;
+            gvIngredientsInfo.StandardTab = true;
+            gvIngredientsInfo.EditMode = DataGridViewEditMode.EditOnKeystrokeOrF2;
+            gvIngredientsInfo.AllowUserToAddRows = false;
+            if (gvIngredientsInfo.Columns.Count > 5)
+            {
+                gvIngredientsInfo.Columns[5].ReadOnly = false;
+                gvIngredientsInfo.Columns[5].ValueType = typeof(bool);
+                if (gvIngredientsInfo.Columns[5] is DataGridViewCheckBoxColumn chkCol)
+                {
+                    chkCol.ThreeState = false;
+                    chkCol.TrueValue = true;
+                    chkCol.FalseValue = false;
+                }
+            }
+
             // Add resize event handler
             this.Resize += CalculatorForm_Resize;
-            
+
             // Store initial positions for relative positioning
             StoreInitialPositions();
-            
+
             // Set up auto-maximize
             FormMaximizeHelper.SetupAutoMaximize(this);
         }
 
+        private void AttachGridEvents()
+        {
+            gvIngredientsInfo.CurrentCellDirtyStateChanged += gvIngredientsInfo_CurrentCellDirtyStateChanged;
+            gvIngredientsInfo.CellValueChanged += gvIngredientsInfo_CellValueChanged;
+        }
+
+        private void DetachGridEvents()
+        {
+            gvIngredientsInfo.CurrentCellDirtyStateChanged -= gvIngredientsInfo_CurrentCellDirtyStateChanged;
+            gvIngredientsInfo.CellValueChanged -= gvIngredientsInfo_CellValueChanged;
+        }
+
+        private void gvIngredientsInfo_CurrentCellDirtyStateChanged(object? sender, EventArgs e)
+        {
+            if (isUpdatingGrid)
+            {
+                return;
+            }
+            if (gvIngredientsInfo.IsCurrentCellDirty && gvIngredientsInfo.CurrentCell is DataGridViewCheckBoxCell)
+            {
+                gvIngredientsInfo.CommitEdit(DataGridViewDataErrorContexts.Commit);
+            }
+        }
+
+        private void gvIngredientsInfo_CellValueChanged(object? sender, DataGridViewCellEventArgs e)
+        {
+            if (isUpdatingGrid)
+            {
+                return;
+            }
+            if (e.RowIndex < 0)
+            {
+                return;
+            }
+
+            if (e.ColumnIndex == 5)
+            {
+                var row = gvIngredientsInfo.Rows[e.RowIndex];
+                var ingredient = row.Tag as IngredientModel;
+                if (ingredient != null)
+                {
+                    UpdatePrizeInGrid(e.RowIndex, ingredient);
+                    UpdateTotalLabelFromGrid();
+                }
+            }
+        }
+
+        private void UpdateTotalLabelFromGrid()
+        {
+            double total = 0.0;
+            for (int rowIndex = 0; rowIndex < gvIngredientsInfo.Rows.Count; rowIndex++)
+            {
+                var row = gvIngredientsInfo.Rows[rowIndex];
+                if (row.IsNewRow) continue;
+                var ingredient = row.Tag as IngredientModel;
+                if (ingredient == null) continue;
+                var prizeObj = row.Cells[4].Value;
+                bool useWholesale = Convert.ToBoolean(row.Cells[5].Value);
+                var ingredientPriceObj = useWholesale ? ingredient.WholesalePrice : ingredient.RetailPrice;
+                double prizeVal = Convert.ToDouble(prizeObj);
+                double ingredientPriceVal = Convert.ToDouble(ingredientPriceObj);
+                total += PrizeCalculation.CalculateWeightVolCost(50, prizeVal, ingredientPriceVal);
+            }
+            lblTotalAmount.Text = total.ToString();
+        }
         /// <summary>
         /// Initializes all services with fresh connections
         /// </summary>
@@ -53,7 +146,7 @@ namespace CakePrizeView
                 // Clear connection cache and reset environment to force re-reading
                 EnvironmentConfig.Reset();
                 DatabaseConnectionManager.ClearCache();
-                
+
                 // Create services using centralized connection management
                 productService = new ProductService();
                 productIngredientService = new ProductIngredientService();
@@ -61,16 +154,16 @@ namespace CakePrizeView
                 unitTypeService = new UnitTypeService();
                 productPhotoService = new ProductPhotoService();
                 logsService = new LogsService();
-                
+
                 // Log successful initialization
                 logsService.CreateLog("CalculatorForm services initialized successfully", "Info", "System");
             }
             catch (Exception ex)
             {
                 // If we can't create services, show error but don't crash the form
-                MessageBox.Show($"Failed to initialize database services: {ex.Message}", "Initialization Error", 
+                MessageBox.Show($"Failed to initialize database services: {ex.Message}", "Initialization Error",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
-                
+
                 // Create a minimal logs service for error reporting
                 try
                 {
@@ -84,14 +177,33 @@ namespace CakePrizeView
             }
         }
 
-        private void UpdateTotalLabel()
+        private void UpdateTotalLabel(List<Guid> prodIngrId)
         {
-            /*var flour = Convert.ToInt32(TxtFlour.Text);
+            double total = 0.0;
+            int rowIndex = 0;
+
+            foreach (var id in prodIngrId)
+            {
+                var prizeObj = gvIngredientsInfo.Rows[rowIndex].Cells[4].Value;
+                var dfltPrizeObj = gvIngredientsInfo.Rows[rowIndex].Cells[5].Value;
+                var prodIng = productIngredientService.GetProductIngredientById(id);
+
+                bool useWholesale = Convert.ToBoolean(dfltPrizeObj);
+                var ingredientEntity = ingredientService.GetIngredientById(prodIng.IngredientId);
+                var ingredientPriceObj = useWholesale ? ingredientEntity.WholesalePrice : ingredientEntity.RetailPrice;
+
+                double prizeVal = Convert.ToDouble(prizeObj);
+                double ingredientPriceVal = Convert.ToDouble(ingredientPriceObj);
+
+                total += PrizeCalculation.CalculateWeightVolCost(50, prizeVal, ingredientPriceVal);
+                rowIndex++;
+            }
+            /*
+            var flour = Convert.ToInt32(TxtFlour.Text);
             var milk = Convert.ToInt32(TxtFlour.Text);
-            var total = 0.0;
             if (rbtnMinFlour.Checked)
             {
-                total += PrizeCalculation.GetMinFlourCostProfit(flour);
+                
             }
             if (rbtnMaxFlour.Checked)
             {
@@ -104,89 +216,62 @@ namespace CakePrizeView
             if (rbtnMinMilk.Checked)
             {
                 total += PrizeCalculation.GetMinMilkCostProfit(flour);
-            }
-            lblTotalAmount.Text = total.ToString();*/
+            }*/
+            lblTotalAmount.Text = total.ToString();
         }
 
-        private void CreateIngredientRows(List<Guid> ingredientsAmount)
+        private void UpdatePrizeInGrid(int rowIndex, IngredientModel ingredient)
         {
-            int lblIngredientNamePosX = 0;
-            int lblIngredientNamePosY = 0;
-            int lblIngredientNameSizeX = 99;
-            int lblIngredientNameSizeY = 19;
-
-            int lblUnitAcronymPosX = 299;
-            int lblUnitAcronymPosY = 0;
-            int lblUnitAcronymSizeX = 5;
-            int lblUnitAcronymSizeY = 19;
-
-            int txtIngredientPosX = 110;
-            int txtIngredientPosY = 0;
-            int txtIngredientSizeX = 130;
-            int txtIngredientSizeY = 19;
-
-
-            int ingredientRetailPosX = 350;
-            int ingredientRetailPosY = 0;
-            int ingredientRetailSizeX = 94;
-            int ingredientRetailSizeY = 19;
-
-            int ingredientWholesalePosX = 450;
-            int ingredientWholesalePosY = 0;
-            int ingredientWholesaleSizeX = 94;
-            int ingredientWholesaleSizeY = 19;
-
-            int ingredientPanelRowPosX = -2;
-            int ingredientPanelRowPosY = 0;
-            int ingredientPanelRowSizeX = 1168;
-            int ingredientPanelRowSizeY = 1191;
-            int incrementPanelRowY = 31;
-
-            TextBox TxtIngredientAmount;
-            Label LblingredientName;
-            Label LblunitPrefix;
-            RadioButton RbtnRetailPrize;
-            RadioButton RbtnWholesalePrize;
-
-            int numRow = 0;
-
-            foreach (var ingrId in ingredientsAmount)
+            var qtyRetail = ingredient.RetailPrice;
+            var qtyWholesale = ingredient.WholesalePrice;
+            bool useWholesale = Convert.ToBoolean(gvIngredientsInfo.Rows[rowIndex].Cells[5].Value);
+            try
             {
-                var ingredient = ingredientService.GetIngredientById(ingrId);
+                isUpdatingGrid = true;
+                gvIngredientsInfo.Rows[rowIndex].Cells[4].Value = useWholesale ? qtyWholesale : qtyRetail;
+            }
+            finally
+            {
+                isUpdatingGrid = false;
+            }
+        }
+
+        private void CreateIngredientRows(List<Guid> prodIngrId)
+        {
+
+            foreach (var id in prodIngrId)
+            {
+                int rowIndex = gvIngredientsInfo.Rows.Add();
+                var prodIngId = productIngredientService.GetProductIngredientById(id);
+                var ingredient = ingredientService.GetIngredientById(prodIngId.IngredientId);
+                var brand = ingredient.BrandId.HasValue ? brandService.GetBrandById((Guid)ingredient.BrandId).Name : string.Empty;
+                var unitType = unitTypeService.GetUnitTypeById((Guid)ingredient.UnitTypeId);
+
+                var qtyRetail = ingredient.RetailPrice;
+                var qtyWholesale = ingredient.WholesalePrice;
+
                 var dfaultSelectedRetail = ingredient.DefaultPrice == "Retail";
                 var dfaultSelectedWhole = ingredient.DefaultPrice == "Wholesale";
-                var unitType = unitTypeService.GetUnitTypeById(ingredient.UnitTypeId);
 
-                LblingredientName = FormUtils.CreateLabel($"{ingredient.Name}", numRow, lblIngredientNamePosX, lblIngredientNamePosY,
-                    lblIngredientNameSizeX, lblIngredientNameSizeY);
 
-                LblunitPrefix = FormUtils.CreateLabel($"{unitType.Acronym}", numRow, lblUnitAcronymPosX, lblUnitAcronymPosY,
-                    lblUnitAcronymSizeX, lblUnitAcronymSizeY);
-
-                TxtIngredientAmount = FormUtils.CreateTextBox(ingredient.Name, numRow, txtIngredientPosX, txtIngredientPosY,
-                    txtIngredientSizeX, txtIngredientSizeY);
-
-                RbtnRetailPrize = FormUtils.CreateRadioButton("Menor", numRow, ingredientRetailPosX, ingredientRetailPosY,
-                    ingredientRetailSizeX, ingredientRetailSizeY, dfaultSelectedRetail);
-
-                RbtnWholesalePrize = FormUtils.CreateRadioButton("Mayor", numRow, ingredientWholesalePosX, ingredientWholesalePosY,
-                    ingredientWholesaleSizeX, ingredientWholesaleSizeY, dfaultSelectedWhole);
-
-                PnlIngredients.Controls.Add(
-                    FormUtils.CreateIngredientPanelRow(numRow, LblingredientName, TxtIngredientAmount, LblunitPrefix, RbtnRetailPrize,
-                    RbtnWholesalePrize, ingredientPanelRowPosX, ingredientPanelRowPosY, ingredientPanelRowSizeX, ingredientPanelRowSizeY));
-
-                ingredientPanelRowPosY += incrementPanelRowY;
-                numRow++;
-                FormUtils.EnsureMinimumSpacing(LblingredientName, TxtIngredientAmount, LblunitPrefix, RbtnWholesalePrize);
-                float scaleX = (float)this.Width / initialFormSize.Width;
-                float scaleY = (float)this.Height / initialFormSize.Height;
-                StoreControlBounds(TxtIngredientAmount);
-                AdjustControlLayout(PnlIngredients, scaleX, scaleY);
-                /*AdjustControlLayout(LblunitPrefix, scaleX, scaleY);
-                AdjustControlLayout(TxtIngredientAmount, scaleX, scaleY);
-                AdjustControlLayout(RbtnRetailPrize, scaleX, scaleY);
-                AdjustControlLayout(RbtnWholesalePrize, scaleX, scaleY);*/
+                //ingrediente
+                gvIngredientsInfo.Rows[rowIndex].Cells[0].Value = ingredient.Name;
+                //marca
+                gvIngredientsInfo.Rows[rowIndex].Cells[1].Value = brand;
+                //cantida
+                gvIngredientsInfo.Rows[rowIndex].Cells[2].Value = prodIngId.IngredientQtyPerPrep;
+                //unidad
+                gvIngredientsInfo.Rows[rowIndex].Cells[3].Value = unitType.Acronym;
+                //default precio
+                gvIngredientsInfo.Rows[rowIndex].Cells[5].ReadOnly = false;
+                var defaultIsWholesale = ingredient.DefaultPrice == "Retail" ? false : true;
+                gvIngredientsInfo.Rows[rowIndex].Cells[5].Value = defaultIsWholesale;
+                gvIngredientsInfo.CommitEdit(DataGridViewDataErrorContexts.Commit);
+                // store ingredient for later updates
+                gvIngredientsInfo.Rows[rowIndex].Tag = ingredient;
+                //precio
+                UpdatePrizeInGrid(rowIndex, ingredient);
+                rowIndex++;
             }
         }
 
@@ -206,15 +291,15 @@ namespace CakePrizeView
                 // Clear connection cache and reset environment to force re-reading
                 EnvironmentConfig.Reset();
                 DatabaseConnectionManager.ClearCache();
-                
+
                 TSCmbProductList.Items.Clear();
                 var products = productService.GetAllProducts();
-                
+
                 foreach (var item in products)
                 {
                     TSCmbProductList.Items.Add(item.Name);
                 }
-                
+
                 // Log how many products were loaded
                 logsService.CreateLog($"Loaded {products.Count()} products", "Info", "System");
             }
@@ -260,12 +345,12 @@ namespace CakePrizeView
                 // Refresh the product list
                 RefreshProductList();
 
-                MessageBox.Show("All services and product list refreshed with fresh connections from current environment.", 
+                MessageBox.Show("All services and product list refreshed with fresh connections from current environment.",
                     "Refresh Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to refresh services: {ex.Message}", "Error", 
+                MessageBox.Show($"Failed to refresh services: {ex.Message}", "Error",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -280,28 +365,28 @@ namespace CakePrizeView
             {
                 // Create a fresh service to ensure we're using current environment
                 var freshProductService = new ProductService();
-                
+
                 // Get connection info for debugging
                 var connectionInfo = DatabaseConnectionManager.GetConnectionInfo();
                 var currentEnvironment = EnvironmentConfig.CurrentEnvironment;
-                
+
                 // Log the current environment and connection details
                 logsService.CreateLog(
                     $"Force refreshing product list with fresh connection - Environment: {currentEnvironment}, " +
-                    $"Database: {connectionInfo.Database}, Server: {connectionInfo.Server}", 
+                    $"Database: {connectionInfo.Database}, Server: {connectionInfo.Server}",
                     "Info", "System");
-                
+
                 TSCmbProductList.Items.Clear();
                 var products = freshProductService.GetAllProducts();
-                
+
                 foreach (var item in products)
                 {
                     TSCmbProductList.Items.Add(item.Name);
                 }
-                
+
                 // Log how many products were loaded
                 logsService.CreateLog(
-                    $"Force refresh loaded {products.Count()} products from {connectionInfo.Database} database", 
+                    $"Force refresh loaded {products.Count()} products from {connectionInfo.Database} database",
                     "Info", "System");
             }
             catch (Exception ex)
@@ -309,21 +394,6 @@ namespace CakePrizeView
                 logsService.CreateLog($"Failed to force refresh product list: {ex.Message}", "Error", "System");
                 MessageBox.Show($"Failed to force refresh products: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-        }
-
-        private void PnlIngredients_Click(object sender, EventArgs e)
-        {
-            UpdateTotalLabel();
-        }
-
-        private void rbtnMin_CheckedChanged(object sender, EventArgs e)
-        {
-            UpdateTotalLabel();
-        }
-
-        private void rgbtnMilk_CheckedChanged(object sender, EventArgs e)
-        {
-            UpdateTotalLabel();
         }
 
         private void LoadImage(object sender, EventArgs e, Guid productId)
@@ -346,25 +416,92 @@ namespace CakePrizeView
         {
             try
             {
-                PnlIngredients.Controls.Clear();
                 var productId = productService.GetAllProducts()
                     .Where(product => product.Name == TSCmbProductList.Text)
                     .Select(item => item.Id).First();
                 var test = productIngredientService.GetProductIngredientByProductId(productId);
-
-                var prodIngredients = productIngredientService.GetProductIngredientByProductId(productId)
-                    .Where(prodId => prodId.ProductId == productId).Select(item => item.IngredientId).ToList();
-
-                CreateIngredientRows(prodIngredients);
-                UpdateTotalLabel();
-
-                LblFormTitle.Text = TSCmbProductList.Text;
-                LoadImage(sender, e, productId);
+                if (isRepopulating)
+                {
+                    return;
+                }
+                // Skip repopulate if same product selected (prevents double refresh)
+                if (lastSelectedProductId.HasValue && lastSelectedProductId.Value == productId)
+                {
+                    return;
+                }
+                lastSelectedProductId = productId;
+                isRepopulating = true;
+                // Defer repopulation to avoid running during DataGridView internal notifications
+                BeginInvoke(new Action(() =>
+                {
+                    try
+                    {
+                        RepopulateGrid(productId);
+                    }
+                    finally
+                    {
+                        isRepopulating = false;
+                    }
+                }));
             }
             catch (Exception ex)
             {
                 logsService.CreateLog(ex.Message, "Error", "Marco Llano");
                 throw;
+            }
+        }
+
+        private void RepopulateGrid(Guid productId)
+        {
+            bool prevAllowAdd = gvIngredientsInfo.AllowUserToAddRows;
+            bool prevEnabled = gvIngredientsInfo.Enabled;
+            try
+            {
+                isUpdatingGrid = true;
+                DetachGridEvents();
+                if (gvIngredientsInfo.IsCurrentCellInEditMode)
+                {
+                    gvIngredientsInfo.EndEdit();
+                }
+                gvIngredientsInfo.Enabled = false;
+                gvIngredientsInfo.AllowUserToAddRows = false;
+                gvIngredientsInfo.SuspendLayout();
+                gvIngredientsInfo.ClearSelection();
+                gvIngredientsInfo.Rows.Clear();
+                gvIngredientsInfo.Refresh();
+
+                var productIngredientList = productIngredientService.GetProductIngredientByProductId(productId);
+                if (productIngredientList == null)
+                {
+                    try { logsService.CreateLog($"Product '{TSCmbProductList.Text}' ({productId}) missing ingredients (null list).", "Warning", "System"); } catch { }
+                    MessageBox.Show("The selected product is missing required data (ingredients).", "Missing Data", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                var prodIngredients = productIngredientList
+                    .Where(prodId => prodId != null && prodId.ProductId == productId)
+                    .Select(item => item.Id)
+                    .ToList();
+                if (prodIngredients == null || prodIngredients.Count == 0)
+                {
+                    try { logsService.CreateLog($"Product '{TSCmbProductList.Text}' ({productId}) has no ingredients configured.", "Warning", "System"); } catch { }
+                    MessageBox.Show("The selected product has no ingredients configured.", "Missing Data", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                CreateIngredientRows(prodIngredients);
+                UpdateTotalLabel(prodIngredients);
+
+                LblFormTitle.Text = TSCmbProductList.Text;
+                LoadImage(this, EventArgs.Empty, productId);
+            }
+            finally
+            {
+                gvIngredientsInfo.AllowUserToAddRows = prevAllowAdd;
+                gvIngredientsInfo.Enabled = prevEnabled || true;
+                gvIngredientsInfo.ResumeLayout();
+                isUpdatingGrid = false;
+                AttachGridEvents();
             }
         }
 
@@ -396,16 +533,14 @@ namespace CakePrizeView
         {
             initialFormSize = this.Size;
             initialControlBounds = new Dictionary<Control, Rectangle>();
-            
+
             // Store initial bounds for all controls that need responsive positioning
             StoreControlBounds(imgProduct);
             StoreControlBounds(LblFormTitle);
             StoreControlBounds(BtnBack);
             StoreControlBounds(BtnClose);
-            StoreControlBounds(PnlIngredients);
             StoreControlBounds(pnlTotalPrices);
-            StoreControlBounds(LblSelectPriceTitle);
-            StoreControlBounds(lblIngredientsTitle);
+            StoreControlBounds(gvIngredientsInfo);
         }
 
         /// <summary>
@@ -416,7 +551,7 @@ namespace CakePrizeView
             if (control != null)
             {
                 initialControlBounds[control] = control.Bounds;
-                
+
                 // Store bounds for child controls
                 foreach (Control child in control.Controls)
                 {
@@ -442,11 +577,9 @@ namespace CakePrizeView
             AdjustControlLayout(LblFormTitle, scaleX, scaleY);
             AdjustControlLayout(BtnBack, scaleX, scaleY);
             AdjustControlLayout(BtnClose, scaleX, scaleY);
-            AdjustControlLayout(PnlIngredients, scaleX, scaleY);
+            AdjustControlLayout(gvIngredientsInfo, scaleX, scaleY);
             AdjustControlLayout(pnlTotalPrices, scaleX, scaleY);
-            AdjustControlLayout(LblSelectPriceTitle, scaleX, scaleY);
-            AdjustControlLayout(lblIngredientsTitle, scaleX, scaleY);
-            
+
             // Ensure minimum spacing between controls
             EnsureMinimumSpacing();
         }
@@ -459,13 +592,13 @@ namespace CakePrizeView
             if (control != null && initialControlBounds.ContainsKey(control))
             {
                 Rectangle initialBounds = initialControlBounds[control];
-                
+
                 // Calculate new position and size
                 int newX = (int)(initialBounds.X * scaleX);
                 int newY = (int)(initialBounds.Y * scaleY);
                 int newWidth = (int)(initialBounds.Width * scaleX);
                 int newHeight = (int)(initialBounds.Height * scaleY);
-                
+
                 // Apply new bounds
                 control.Bounds = new Rectangle(newX, newY, newWidth, newHeight);
             }
@@ -477,7 +610,7 @@ namespace CakePrizeView
         private void EnsureMinimumSpacing()
         {
             const int minSpacing = 10;
-            
+
             /*// Ensure minimum spacing between back and close buttons
             if (BtnBack.Right + minSpacing > BtnClose.Left)
             {
@@ -485,10 +618,10 @@ namespace CakePrizeView
             }*/
 
             // Ensure minimum spacing between picture and ingredients panel
-            if (imgProduct.Right + minSpacing > PnlIngredients.Left)
+            if (imgProduct.Right + minSpacing > gvIngredientsInfo.Left)
             {
-                PnlIngredients.Left = imgProduct.Right + minSpacing;
-            }            
+                gvIngredientsInfo.Left = imgProduct.Right + minSpacing;
+            }
         }
     }
 
