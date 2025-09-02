@@ -96,12 +96,14 @@ namespace CakePrizeView.Forms.ingredients
             CheckBox? currentCheckBox = sender as CheckBox;
             if (currentCheckBox != null && currentCheckBox.Checked)
             {
-                // Iterate through all other checkboxes in the group (e.g., on the same panel or form)
-                foreach (Control control in Controls) // Or a specific container like a Panel
+                // Limit search to the same container (panel/group) as the current checkbox
+                Control container = currentCheckBox.Parent ?? this;
+
+                currentCheckBox.Text = "Por defecto.";
+                foreach (Control control in container.Controls)
                 {
-                    if (control is CheckBox otherCheckBox && otherCheckBox != currentCheckBox)
+                    if (control is CheckBox otherCheckBox && !ReferenceEquals(otherCheckBox, currentCheckBox))
                     {
-                        currentCheckBox.Text = "Por defecto.";
                         otherCheckBox.Text = string.Empty;
                         otherCheckBox.Checked = false;
                     }

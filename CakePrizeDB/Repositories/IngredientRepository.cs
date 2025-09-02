@@ -34,11 +34,12 @@ namespace CakePrizeDB.Repositories
                     RetailPrice = (float) reader.GetDouble(4),
                     WholesalePrice = (float) reader.GetDouble(5),
                     DefaultPrice = reader.GetString(6),
-                    Comments = reader.GetString(7),
-                    CreatedDate = reader.GetDateTime(8),
-                    CreatedUser = reader.GetString(9),
-                    ModifiedDate = reader.GetDateTime(10),
-                    ModifiedUser = reader.GetString(11)
+                    PackQty = reader.GetInt32(7),
+                    Comments = reader.GetString(8),
+                    CreatedDate = reader.GetDateTime(9),
+                    CreatedUser = reader.GetString(10),
+                    ModifiedDate = reader.GetDateTime(11),
+                    ModifiedUser = reader.GetString(12)
                 });
             }
 
@@ -62,11 +63,12 @@ namespace CakePrizeDB.Repositories
                     RetailPrice = (float)reader.GetDouble(4),
                     WholesalePrice = (float)reader.GetDouble(5),
                     DefaultPrice = reader.GetString(6),
-                    Comments = reader.GetString(7),
-                    CreatedDate = reader.GetDateTime(8),
-                    CreatedUser = reader.GetString(9),
-                    ModifiedDate = reader.GetDateTime(10),
-                    ModifiedUser = reader.GetString(11)
+                    PackQty = reader.GetInt32(7),
+                    Comments = reader.GetString(8),
+                    CreatedDate = reader.GetDateTime(9),
+                    CreatedUser = reader.GetString(10),
+                    ModifiedDate = reader.GetDateTime(11),
+                    ModifiedUser = reader.GetString(12)
                 };
             }
 
@@ -93,6 +95,7 @@ namespace CakePrizeDB.Repositories
             command.Parameters.AddWithValue("@RetailPrice1K", ingredient.RetailPrice);
             command.Parameters.AddWithValue("@WholesalePrice1K", ingredient.WholesalePrice);
             command.Parameters.AddWithValue("@DefaultPrice", ingredient.DefaultPrice);
+            command.Parameters.AddWithValue("@PackQty", ingredient.PackQty);
             command.Parameters.AddWithValue("@Comments", ingredient.Comments);
             command.Parameters.AddWithValue("@CreatedDate", ingredient.CreatedDate);
             command.Parameters.AddWithValue("@CreatedUser", ingredient.CreatedUser);
