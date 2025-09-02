@@ -40,7 +40,7 @@ namespace CakePrizeDB.Services
         /// <param name="acronym">The acronym (e.g., "g", "ml")</param>
         /// <returns>The created unit type with generated ID</returns>
         public IngredientModel CreateIngredient(string name, Guid unitTypeId, Guid? brandId, float retailPrice,
-            float wholesalePrice, string defaultPrice, string comments, string createdUser, string modifiedUser)
+            float wholesalePrice, string defaultPrice, int packQty, string comments, string createdUser, string modifiedUser)
         {
             if(unitTypeId != Guid.Empty)
             {
@@ -53,6 +53,7 @@ namespace CakePrizeDB.Services
                     RetailPrice = retailPrice,
                     WholesalePrice = wholesalePrice,
                     DefaultPrice = defaultPrice,
+                    PackQty = packQty,
                     Comments = comments,
                     CreatedDate = DateTime.Now,
                     CreatedUser = createdUser,

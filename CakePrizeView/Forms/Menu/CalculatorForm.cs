@@ -6,6 +6,7 @@ using CakePrizeDB.Models;
 using CakePrizeDB.Services;
 using CakePrizeView.Utils;
 using Microsoft.Data.SqlClient;
+using Microsoft.IdentityModel.Tokens;
 using static CakePrizeDB.Constants.DatabaseQueries;
 
 namespace CakePrizeView
@@ -113,12 +114,33 @@ namespace CakePrizeView
                 if (ingredient != null)
                 {
                     UpdatePrizeInGrid(e.RowIndex, ingredient);
-                    UpdateTotalLabelFromGrid();
+                    var profitPercentage = !tsProfitPercentageCmb.Text.IsNullOrEmpty() ? tsProfitPercentageCmb.Text : "0";
+                    UpdateSalePriceLabelFromGrid(int.Parse(profitPercentage));
+                    UpdatePurchasePriceLabelFromGrid(0);
+                    UpdateProfitLabelFromGrid();
                 }
             }
         }
 
-        private void UpdateTotalLabelFromGrid()
+        private void UpdateSalePriceLabelFromGrid(int percentProfit)
+        {
+            double total = CalculateTotal(percentProfit);
+            lblSalePrice.Text = total.ToString();
+        }
+
+        private void UpdatePurchasePriceLabelFromGrid(int percentProfit)
+        {
+            double total = CalculateTotal(percentProfit);
+            lblPurchasePrice.Text = total.ToString();
+        }
+
+        private void UpdateProfitLabelFromGrid()
+        {
+            double total = double.Parse(lblSalePrice.Text) - double.Parse(lblPurchasePrice.Text);
+            lblProfit.Text = total.ToString();
+        }
+
+        public double CalculateTotal(int percentProfit)
         {
             double total = 0.0;
             for (int rowIndex = 0; rowIndex < gvIngredientsInfo.Rows.Count; rowIndex++)
@@ -132,10 +154,11 @@ namespace CakePrizeView
                 var ingredientPriceObj = useWholesale ? ingredient.WholesalePrice : ingredient.RetailPrice;
                 double prizeVal = Convert.ToDouble(prizeObj);
                 double ingredientPriceVal = Convert.ToDouble(ingredientPriceObj);
-                total += PrizeCalculation.CalculateWeightVolCost(50, prizeVal, ingredientPriceVal);
+                total += PrizeCalculation.CalculateWeightVolCost(percentProfit, prizeVal, ingredientPriceVal, ingredient.PackQty);
             }
-            lblTotalAmount.Text = total.ToString();
+            return total;
         }
+
         /// <summary>
         /// Initializes all services with fresh connections
         /// </summary>
@@ -195,29 +218,10 @@ namespace CakePrizeView
                 double prizeVal = Convert.ToDouble(prizeObj);
                 double ingredientPriceVal = Convert.ToDouble(ingredientPriceObj);
 
-                total += PrizeCalculation.CalculateWeightVolCost(50, prizeVal, ingredientPriceVal);
+                total += PrizeCalculation.CalculateWeightVolCost(50, prizeVal, ingredientPriceVal, ingredientEntity.PackQty);
                 rowIndex++;
             }
-            /*
-            var flour = Convert.ToInt32(TxtFlour.Text);
-            var milk = Convert.ToInt32(TxtFlour.Text);
-            if (rbtnMinFlour.Checked)
-            {
-                
-            }
-            if (rbtnMaxFlour.Checked)
-            {
-                total += PrizeCalculation.GetMaxFlourCostProfit(flour);
-            }
-            if (rbtnMaxMilk.Checked)
-            {
-                total += PrizeCalculation.GetMaxMilkCostProfit(flour);
-            }
-            if (rbtnMinMilk.Checked)
-            {
-                total += PrizeCalculation.GetMinMilkCostProfit(flour);
-            }*/
-            lblTotalAmount.Text = total.ToString();
+            lblSalePrice.Text = total.ToString();
         }
 
         private void UpdatePrizeInGrid(int rowIndex, IngredientModel ingredient)

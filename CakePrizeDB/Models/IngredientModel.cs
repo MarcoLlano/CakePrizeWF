@@ -9,6 +9,7 @@
         public float RetailPrice { get; set; } = 0;
         public float WholesalePrice { get; set; } = 0;
         public string DefaultPrice { get; set; } = string.Empty;
+        public int PackQty { get; set; } = 0;
         public string Comments { get; set; } = string.Empty;
         public DateTime CreatedDate { get; set; } = DateTime.Now;
         public string CreatedUser { get; set; } = string.Empty;

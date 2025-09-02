@@ -25,9 +25,9 @@ namespace CakePrizeDB.Constants
             public static string GetAll => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[ingredient]";
             public static string GetById => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[ingredient] WHERE id = @IngredientId";
             public static string Insert => $"INSERT INTO [{GetCurrentDatabaseName()}].[dbo].[ingredient] (id, name, unit_type_id, brand_id, " +
-                "retail_price_1k, wholesale_price_1k, default_selected_price, comments, created_date, created_user, modified_date," +
-                " modified_user) VALUES (@Id, @Name, @UnitTypeId, @BrandId, @RetailPrice1K, @WholesalePrice1K, @DefaultPrice, @Comments," +
-                " @CreatedDate, @CreatedUser, @ModifiedDate, @ModifiedUser)";
+                "retail_price_1k, wholesale_price_1k, default_selected_price, pack_qty, comments, created_date, created_user, modified_date," +
+                " modified_user) VALUES (@Id, @Name, @UnitTypeId, @BrandId, @RetailPrice1K, @WholesalePrice1K, @DefaultPrice, @PackQty" +
+                ", @Comments, @CreatedDate, @CreatedUser, @ModifiedDate, @ModifiedUser)";
         }
 
         public static class Brand
