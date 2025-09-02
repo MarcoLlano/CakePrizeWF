@@ -1,26 +1,53 @@
-﻿using CakePrizeDB.Services;
+using CakePrizeDB.Services;
 using Microsoft.Data.SqlClient;
 using CakePrizeView.Utils;
+using CakePrizeCore.libs.DBUtils;
+using System.Text.RegularExpressions;
 
 namespace CakePrizeView.Forms.ingredients
 {
-    public partial class IngredientForm : Form
+    public partial class IngredientForm : BaseForm
     {
         private Form previousForm;
         private UnitTypeService unitTypeService;
         private BrandService brandService;
         private IngredientService ingredientService;
 
-        public IngredientForm(Form previousForm, SqlConnection sqlConnection)
+        public IngredientForm(Form previousForm, SqlConnection? sqlConnection = null)
         {
+            unitTypeService = new UnitTypeService();
+            brandService = new BrandService();
+            ingredientService = new IngredientService();
             InitializeComponent();
             this.previousForm = previousForm;
-            unitTypeService = new UnitTypeService(sqlConnection);
-            brandService = new BrandService(sqlConnection);
-            ingredientService = new IngredientService(sqlConnection);
-            
+
+            // Initialize services after InitializeComponent to ensure proper connection state
+            InitializeServices();
+
             // Set up auto-maximize
             FormMaximizeHelper.SetupAutoMaximize(this);
+        }
+
+        /// <summary>
+        /// Initializes all services with fresh connections
+        /// </summary>
+        private void InitializeServices()
+        {
+            try
+            {
+                // Create fresh connections for each service to ensure they're open and available
+                var connection = DatabaseConnectionManager.OpenConnection();
+
+                unitTypeService = new UnitTypeService();
+                brandService = new BrandService();
+                ingredientService = new IngredientService();
+            }
+            catch (Exception ex)
+            {
+                // If we can't create services, show error but don't crash the form
+                MessageBox.Show($"Failed to initialize database services: {ex.Message}", "Initialization Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void FrmIngredients_Load(object sender, EventArgs e)
@@ -52,7 +79,7 @@ namespace CakePrizeView.Forms.ingredients
             {
                 chkbDefaultWholesale.Text = string.Empty;
             }
-            SelectDefaultPrice(sender);
+            SelectDefaultPrice(sender, e);
         }
 
         private void chkbDefaultRetail_CheckedChanged(object sender, EventArgs e)
@@ -61,20 +88,22 @@ namespace CakePrizeView.Forms.ingredients
             {
                 chkbDefaultRetail.Text = string.Empty;
             }
-            SelectDefaultPrice(sender);
+            SelectDefaultPrice(sender, e);
         }
 
-        private void SelectDefaultPrice(object sender)
+        private void SelectDefaultPrice(object sender, EventArgs e)
         {
             CheckBox? currentCheckBox = sender as CheckBox;
             if (currentCheckBox != null && currentCheckBox.Checked)
             {
-                // Iterate through all other checkboxes in the group (e.g., on the same panel or form)
-                foreach (Control control in Controls) // Or a specific container like a Panel
+                // Limit search to the same container (panel/group) as the current checkbox
+                Control container = currentCheckBox.Parent ?? this;
+
+                currentCheckBox.Text = "Por defecto.";
+                foreach (Control control in container.Controls)
                 {
-                    if (control is CheckBox otherCheckBox && otherCheckBox != currentCheckBox)
+                    if (control is CheckBox otherCheckBox && !ReferenceEquals(otherCheckBox, currentCheckBox))
                     {
-                        currentCheckBox.Text = "Por defecto.";
                         otherCheckBox.Text = string.Empty;
                         otherCheckBox.Checked = false;
                     }
@@ -82,23 +111,45 @@ namespace CakePrizeView.Forms.ingredients
             }
         }
 
+        private bool ValidateFields()
+        {
+            bool pass = false;
+            pass = Regex.IsMatch(@"^(\w+ ?)*$", txtIngredientName.Text);
+            return pass;
+        }
+
         private void btnSaveIngredient_Click(object sender, EventArgs e)
         {
-            string selectedPrice = chkbDefaultRetail.CheckState == 0 ? "Wholesale" : "Retail";
-            string createdModifiedUser = "Marco Llano";
-            var unitSelected = cmbIngredientBrand.Text;
-            ingredientService.CreateIngredient(
-                txtIngredientName.Text,
-                Guid.Parse(GetAllUnitTypes().Where(d => d.Value == cmbIngredientUnits.Text)
-                .Select(t => t.Key).First().ToString() ?? string.Empty),
-                Guid.Parse(GetAllBrands().Where(d => d.Value == cmbIngredientBrand.Text)
-                .Select(t => t.Key).First().ToString() ?? string.Empty),
-                float.Parse(txtRetailPrice.Text),
-                float.Parse(txtWholesalePrice.Text),
-                selectedPrice,
-                richTBIngredientComments.Text,
-                createdModifiedUser,
-                createdModifiedUser);
+            if (ValidateFields())
+            {
+                string selectedPrice = chkbDefaultRetail.CheckState == 0 ? "Wholesale" : "Retail";
+                string createdModifiedUser = "Marco Llano";
+
+                // Handle ingredientBrandId - set to null if no brand is selected or brand doesn't exist
+                Guid? ingredientBrandId = null;
+                if (!string.IsNullOrEmpty(cmbIngredientBrand.Text))
+                {
+                    var brandMatch = GetAllBrands().FirstOrDefault(d => d.Value == cmbIngredientBrand.Text);
+                    if (brandMatch.Key != Guid.Empty)
+                    {
+                        ingredientBrandId = brandMatch.Key;
+                    }
+                }
+
+                ingredientService.CreateIngredient(
+                    txtIngredientName.Text,
+                    Guid.Parse(GetAllUnitTypes().Where(d => d.Value == cmbIngredientUnits.Text)
+                    .Select(t => t.Key).First().ToString() ?? string.Empty),
+                    ingredientBrandId,
+                    float.Parse(txtRetailPrice.Text),
+                    float.Parse(txtWholesalePrice.Text),
+                    selectedPrice,
+                    int.Parse(txtPackQty.Text),
+                    richTBIngredientComments.Text,
+                    createdModifiedUser,
+                    createdModifiedUser);
+            }
+
         }
 
         private Dictionary<Guid, string> GetAllUnitTypes()
@@ -152,3 +203,4 @@ namespace CakePrizeView.Forms.ingredients
         }
     }
 }
+

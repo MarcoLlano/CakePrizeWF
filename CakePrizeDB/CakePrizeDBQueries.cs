@@ -3,64 +3,28 @@ using System.Data;
 using System.Configuration;
 using System.Collections.Generic;
 using System.Data.Common;
+using CakePrizeCore.libs.DBUtils;
 
 namespace CakePrizeDB
 {
     public class CakePrizeDBQueries
     {
-        private string conUrl;
         private SqlConnection sqlConnection;
+        
         public CakePrizeDBQueries()
         {
-            conUrl = GetConnectionString();
-            StartConnection();
+            // Use centralized environment-aware connection management
+            sqlConnection = DatabaseConnectionManager.OpenConnection();
         }
 
-        private string GetConnectionString()
+        /// <summary>
+        /// Creates a new instance with a specific environment connection
+        /// </summary>
+        /// <param name="environment">The environment to connect to</param>
+        public CakePrizeDBQueries(CakePrizeCore.libs.Configuration.EnvironmentConfig.Environment environment)
         {
-            // Try multiple sources for the connection string
-            var connectionString = ConfigurationManager.ConnectionStrings["CakePrize"]?.ConnectionString
-                ?? Environment.GetEnvironmentVariable("CAKEPRIZE__CONNECTIONSTRING")
-                ?? Environment.GetEnvironmentVariable("CAKEPRIZE_CONNECTIONSTRING");
-
-            if (string.IsNullOrWhiteSpace(connectionString))
-            {
-                // Try to load configuration from the executing assembly
-                try
-                {
-                    var config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-                    connectionString = config.ConnectionStrings?.ConnectionStrings["CakePrize"]?.ConnectionString;
-                }
-                catch
-                {
-                    // Ignore configuration loading errors
-                }
-            }
-
-            if (string.IsNullOrWhiteSpace(connectionString))
-            {
-                throw new InvalidOperationException(
-                    "Missing connection string. Please ensure one of the following is configured:\n" +
-                    "1. 'CakePrize' connection string in App.config\n" +
-                    "2. CAKEPRIZE__CONNECTIONSTRING environment variable\n" +
-                    "3. CAKEPRIZE_CONNECTIONSTRING environment variable");
-            }
-
-            return connectionString;
-        }
-
-        private void StartConnection()
-        {
-            sqlConnection = new SqlConnection(conUrl);
-            if (sqlConnection == null)
-            {
-                throw new ArgumentNullException(nameof(sqlConnection));
-            }
-
-            if (sqlConnection.State != ConnectionState.Open)
-            {
-                sqlConnection.Open();
-            }
+            // Use centralized environment-aware connection management for specific environment
+            sqlConnection = DatabaseConnectionManager.OpenConnection(environment);
         }
 
         public void InsertNewIngredient(SqlConnection sqlConnection, string[] values)
@@ -76,7 +40,8 @@ namespace CakePrizeDB
         /// </summary>
         public List<string> GetUnitType()
         {
-            string query = $"SELECT * FROM [CakePrize].[dbo].[unit_type]";
+            var databaseName = CakePrizeCore.libs.Configuration.EnvironmentConfig.GetDatabaseName();
+            string query = $"SELECT * FROM [{databaseName}].[dbo].[unit_type]";
             using var sqlCommand = new SqlCommand(query, sqlConnection);
             using var reader = sqlCommand.ExecuteReader();
 
@@ -95,8 +60,16 @@ namespace CakePrizeDB
         /// </summary>
         public List<Models.UnitTypeModel> GetUnitTypesNew()
         {
-            var service = new Services.UnitTypeService(sqlConnection);
+            var service = new Services.UnitTypeService();
             return service.GetAllUnitTypes();
+        }
+
+        /// <summary>
+        /// Properly disposes of the database connection
+        /// </summary>
+        public void Dispose()
+        {
+            sqlConnection?.Dispose();
         }
     }
 }

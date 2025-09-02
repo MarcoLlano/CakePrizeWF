@@ -1,13 +1,9 @@
-﻿using CakePrizeDB.Models;
+using CakePrizeDB.Models;
 using CakePrizeDB.Services;
 using CakePrizeView.Utils;
+using CakePrizeCore.libs.DBUtils;
 using Microsoft.Data.SqlClient;
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.IO;
-using System.Linq;
-using System.Windows.Forms;
+using CakePrizeCore.libs.utils;
 
 namespace CakePrizeView.Forms.Menu.Products
 {
@@ -20,28 +16,36 @@ namespace CakePrizeView.Forms.Menu.Products
         private ProductIngredientService productIngredientService;
         private ProductPhotoService productPhotoService;
         private ProductSizeService productSizeService;
+        private BrandService brandService;
+        private LogsService logsService;
+        private UserService userService;
         private string fileName;
         private string fullFileName;
-        private Dictionary<Guid, string> ingredientList;
 
         // Store initial form size for relative positioning
         private Size initialFormSize;
         private Dictionary<Control, Rectangle> initialControlBounds;
 
-        public ProductForm(Form previousForm, SqlConnection sqlConnection)
+        public ProductForm(Form previousForm, SqlConnection? sqlConnection = null)
         {
+            brandService = new BrandService();
+            prodTypeService = new ProductTypeService();
+            productIngredientService = new ProductIngredientService();
+            productPhotoService = new ProductPhotoService();
+            productSizeService = new ProductSizeService();
+            ingredientService = new IngredientService();
+            productService = new ProductService();
+            logsService = new LogsService();
+            userService = new UserService();
+
             this.previousForm = previousForm;
-            prodTypeService = new ProductTypeService(sqlConnection);
-            ingredientService = new IngredientService(sqlConnection);
-            productService = new ProductService(sqlConnection);
-            productIngredientService = new ProductIngredientService(sqlConnection);
-            productPhotoService = new ProductPhotoService(sqlConnection);
-            productSizeService = new ProductSizeService(sqlConnection);
             initialControlBounds = new Dictionary<Control, Rectangle>();
-            ingredientList = new Dictionary<Guid, string>();
             fileName = string.Empty;
             fullFileName = string.Empty;
             InitializeComponent();
+            
+            // Initialize services after InitializeComponent to ensure proper connection state
+            InitializeServices();
 
             // Add resize event handler
             this.Resize += ProductForm_Resize;
@@ -54,6 +58,32 @@ namespace CakePrizeView.Forms.Menu.Products
 
             // Set up ComboBox functionality
             SetupComboBoxes();
+        }
+
+        /// <summary>
+        /// Initializes all services with fresh connections
+        /// </summary>
+        private void InitializeServices()
+        {
+            try
+            {
+                // Create fresh connections for each service to ensure they're open and available
+                var connection = DatabaseConnectionManager.OpenConnection();
+                
+                prodTypeService = new ProductTypeService();
+                ingredientService = new IngredientService();
+                productService = new ProductService();
+                productIngredientService = new ProductIngredientService();
+                productPhotoService = new ProductPhotoService();
+                productSizeService = new ProductSizeService();
+                logsService = new LogsService();
+            }
+            catch (Exception ex)
+            {
+                // If we can't create services, show error but don't crash the form
+                MessageBox.Show($"Failed to initialize database services: {ex.Message}", "Initialization Error", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         /// <summary>
@@ -85,7 +115,7 @@ namespace CakePrizeView.Forms.Menu.Products
         /// <summary>
         /// Handles click event for ProductType ComboBox
         /// </summary>
-        private void CbProductType_Click(object sender, EventArgs e)
+        private void CbProductType_Click(object? sender, EventArgs e)
         {
             try
             {
@@ -105,7 +135,7 @@ namespace CakePrizeView.Forms.Menu.Products
         /// <summary>
         /// Handles click event for Ingredient ComboBox
         /// </summary>
-        private void CbProductIngredient_Click(object sender, EventArgs e)
+        private void CbProductIngredient_Click(object? sender, EventArgs e)
         {
             try
             {
@@ -132,9 +162,13 @@ namespace CakePrizeView.Forms.Menu.Products
 
         private void GetAllIngredients(object sender, EventArgs e)
         {
+            
             foreach (var item in ingredientService.GetAllIngredients())
             {
-                cbProductIngredient.Items.Add($"{item.Name}");
+                string brandName = item.BrandId.HasValue 
+                    ? brandService?.GetBrandById(item.BrandId.Value)?.Name ?? "Unknown Brand"
+                    : "No Brand";
+                cbProductIngredient.Items.Add($"{item.Name} - {brandName}");
             }
         }
 
@@ -159,8 +193,9 @@ namespace CakePrizeView.Forms.Menu.Products
         private void btnProdAddIngredientToList_Click(object sender, EventArgs e)
         {
             int rowIndex = gvProductIngredientList.Rows.Add();
-            gvProductIngredientList.Rows[rowIndex].Cells[0].Value = cbProductIngredient.Text;
+            gvProductIngredientList.Rows[rowIndex].Cells[0].Value = StringUtils.GetIngredientWithoutBrand(cbProductIngredient.Text);
             gvProductIngredientList.Rows[rowIndex].Cells[1].Value = txtProductIngrQty.Text;
+            gvProductIngredientList.Rows[rowIndex].Cells[2].Value = StringUtils.GetBrandWithoutIngredient(cbProductIngredient.Text);
         }
 
         private void txtProductIngredientImage_Click(object sender, EventArgs e)
@@ -272,11 +307,12 @@ namespace CakePrizeView.Forms.Menu.Products
             {
                 int totalWidth = gvProductIngredientList.Width - 20; // Account for scrollbar
 
-                // Set proportional widths (60% for ingredient, 40% for quantity)
+                // Set proportional widths (60% for ingredient, 20% for quantity and 20% for Brand)
                 if (gvProductIngredientList.Columns.Count >= 2)
                 {
                     gvProductIngredientList.Columns[0].Width = (int)(totalWidth * 0.6); // Ingredient column
-                    gvProductIngredientList.Columns[1].Width = (int)(totalWidth * 0.4); // Quantity column
+                    gvProductIngredientList.Columns[1].Width = (int)(totalWidth * 0.2); // Quantity column
+                    gvProductIngredientList.Columns[2].Width = (int)(totalWidth * 0.2); // Brand column
                 }
             }
         }
@@ -289,12 +325,13 @@ namespace CakePrizeView.Forms.Menu.Products
                 if (newProd != null)
                 {
                     var newProdPhoto = LinkProductAndPhoto(sender, e, newProd.Id);
-                    LinkProductAndSize(sender, e, newProd.Id);
-                    LinkProductAndIngredient(sender, e, newProd.Id);
+                    LinkProductAndSize(sender, e, newProd.Id, "Marco Llano");
+                    LinkProductAndIngredient(sender, e, newProd.Id, "Marco Llano");
                     
                     if (newProdPhoto != null)
                     {
                         MessageBox.Show("Product saved successfully with photo!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        logsService.CreateLog($"Product {newProd.Name} saved successfully with photo!", "Info", "Marco Llano");
                     }
                     else
                     {
@@ -322,26 +359,44 @@ namespace CakePrizeView.Forms.Menu.Products
         /// <summary>
         /// Links a product with its ingredients by iterating through the DataGridView rows
         /// </summary>
-        private void LinkProductAndIngredient(object sender, EventArgs e, Guid productId)
+        private void LinkProductAndIngredient(object sender, EventArgs e, Guid productId, string createdUser)
         {
             try
             {
                 // Iterate through all rows in the DataGridView
-                for (int rowIndex = 0; rowIndex < gvProductIngredientList.Rows.Count; rowIndex++)
+                for (int rowIndex = 0; rowIndex < gvProductIngredientList.Rows.Count - 1; rowIndex++)
                 {
                     // Get the ingredient name from the first column (index 0)
-                    string ingredientName = gvProductIngredientList.Rows[rowIndex].Cells[0].Value?.ToString();
-                    
+                    string ingredientName = gvProductIngredientList.Rows[rowIndex].Cells[0].Value.ToString();
+                    string brandName = gvProductIngredientList.Rows[rowIndex].Cells[2].Value.ToString();
+
+                    var brandId = brandService.GetAllBrands()
+                            .Where(d => d.Name == brandName)
+                            .Select(t => t.Id)
+                            .FirstOrDefault();
+
                     // Get the quantity from the second column (index 1)
-                    string quantityText = gvProductIngredientList.Rows[rowIndex].Cells[1].Value?.ToString();
+                    string quantityText = gvProductIngredientList.Rows[rowIndex].Cells[1].Value.ToString();
                     
                     if (!string.IsNullOrEmpty(ingredientName) && !string.IsNullOrEmpty(quantityText))
                     {
                         // Find the ingredient ID by name using the local ingredientList dictionary
-                        var ingredientId = ingredientService.GetAllIngredients()
+                        var ingredientId = Guid.Empty;
+                        if (brandName == "No Brand")
+                        {
+                            ingredientId = ingredientService.GetAllIngredients()
                             .Where(d => d.Name == ingredientName)
                             .Select(t => t.Id)
                             .FirstOrDefault();
+                        }
+                        else
+                        {
+                            ingredientId = ingredientService.GetAllIngredients()
+                                .Where(d => d.Name == ingredientName && d.BrandId == brandId)
+                                .Select(t => t.Id)
+                                .FirstOrDefault();
+                        }
+                        
                         
                         if (ingredientId != Guid.Empty)
                         {
@@ -353,8 +408,8 @@ namespace CakePrizeView.Forms.Menu.Products
                                     productId,
                                     ingredientId,
                                     quantity,
-                                    "Marco Llano",
-                                    "Marco Llano");
+                                    createdUser,
+                                    createdUser);
                             }
                             else
                             {
@@ -403,15 +458,15 @@ namespace CakePrizeView.Forms.Menu.Products
             }
         }
 
-        private ProductSizeModel LinkProductAndSize(object sender, EventArgs e, Guid productId)
+        private ProductSizeModel LinkProductAndSize(object sender, EventArgs e, Guid productId, string createUser)
         {
             return productSizeService.CreateProductSize(
                 productId,
                 txtProductPortionsPerPrep.Text,
                 cbProductSize.Text,
                 richTBProdComments.Text,
-                "Marco Llano",
-                "Marco Llano");
+                createUser,
+                createUser);
         }
 
         private void ClearFields(object sender, EventArgs e)
@@ -420,3 +475,4 @@ namespace CakePrizeView.Forms.Menu.Products
         }
     }
 }
+

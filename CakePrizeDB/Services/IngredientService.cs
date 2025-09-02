@@ -1,15 +1,17 @@
-﻿using CakePrizeDB.Models;
+using CakePrizeDB.Models;
 using CakePrizeDB.Repositories;
-using Microsoft.Data.SqlClient;
+using CakePrizeCore.libs.DBUtils;
 
 namespace CakePrizeDB.Services
 {
     public class IngredientService
     {
         private readonly IngredientRepository _repository;
-        public IngredientService(SqlConnection sqlConnection)
+        public IngredientService()
         {
-            _repository = new IngredientRepository(sqlConnection);
+            // Use centralized connection management
+            var connection = DatabaseConnectionManager.OpenConnection();
+            _repository = new IngredientRepository(connection);
         }
 
         /// <summary>
@@ -37,10 +39,10 @@ namespace CakePrizeDB.Services
         /// <param name="name">The name of the ingredient (e.g., "Powder", "Milk")</param>
         /// <param name="acronym">The acronym (e.g., "g", "ml")</param>
         /// <returns>The created unit type with generated ID</returns>
-        public IngredientModel CreateIngredient(string name, Guid unitTypeId, Guid brandId, float retailPrice,
-            float wholesalePrice, string defaultPrice, string comments, string createdUser, string modifiedUser)
+        public IngredientModel CreateIngredient(string name, Guid unitTypeId, Guid? brandId, float retailPrice,
+            float wholesalePrice, string defaultPrice, int packQty, string comments, string createdUser, string modifiedUser)
         {
-            if(unitTypeId != Guid.Empty && brandId != Guid.Empty)
+            if(unitTypeId != Guid.Empty)
             {
                 var ingredient = new IngredientModel
                 {
@@ -51,6 +53,7 @@ namespace CakePrizeDB.Services
                     RetailPrice = retailPrice,
                     WholesalePrice = wholesalePrice,
                     DefaultPrice = defaultPrice,
+                    PackQty = packQty,
                     Comments = comments,
                     CreatedDate = DateTime.Now,
                     CreatedUser = createdUser,
@@ -66,3 +69,4 @@ namespace CakePrizeDB.Services
         }
     }
 }
+

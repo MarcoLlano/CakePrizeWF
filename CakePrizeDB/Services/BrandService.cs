@@ -1,6 +1,6 @@
-﻿using CakePrizeDB.Models;
+using CakePrizeDB.Models;
 using CakePrizeDB.Repositories;
-using Microsoft.Data.SqlClient;
+using CakePrizeCore.libs.DBUtils;
 using System.Diagnostics.Tracing;
 
 namespace CakePrizeDB.Services
@@ -8,9 +8,11 @@ namespace CakePrizeDB.Services
     public class BrandService
     {
         private readonly BrandRepository _repository;
-        public BrandService(SqlConnection sqlConnection)
+        public BrandService()
         {
-            _repository = new BrandRepository(sqlConnection);
+            // Use centralized connection management
+            var connection = DatabaseConnectionManager.OpenConnection();
+            _repository = new BrandRepository(connection);
         }
 
         /// <summary>
@@ -57,3 +59,4 @@ namespace CakePrizeDB.Services
         }
     }
 }
+

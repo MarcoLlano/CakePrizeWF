@@ -1,15 +1,17 @@
-﻿using CakePrizeDB.Models;
+using CakePrizeDB.Models;
 using CakePrizeDB.Repositories;
-using Microsoft.Data.SqlClient;
+using CakePrizeCore.libs.DBUtils;
 
 namespace CakePrizeDB.Services
 {
     public class UnitTypeService
     {
         private readonly UnitTypeRepository _repository;
-        public UnitTypeService(SqlConnection sqlConnection)
+        public UnitTypeService()
         {
-            _repository = new UnitTypeRepository(sqlConnection);
+            // Use centralized connection management
+            var connection = DatabaseConnectionManager.OpenConnection();
+            _repository = new UnitTypeRepository(connection);
         }
 
         /// <summary>
@@ -80,3 +82,4 @@ namespace CakePrizeDB.Services
         }
     }
 }
+

@@ -1,172 +1,419 @@
+using CakePrize.libs.utils;
+using CakePrizeCore.libs.Configuration;
+using CakePrizeCore.libs.DBUtils;
+using CakePrizeCore.libs.utils;
+using CakePrizeDB.Models;
 using CakePrizeDB.Services;
 using CakePrizeView.Utils;
 using Microsoft.Data.SqlClient;
+using Microsoft.IdentityModel.Tokens;
+using static CakePrizeDB.Constants.DatabaseQueries;
 
 namespace CakePrizeView
 {
-    public partial class CalculatorForm : Form
+    public partial class CalculatorForm : BaseForm
     {
         private Form previousForm;
         private ProductService productService;
         private ProductIngredientService productIngredientService;
         private IngredientService ingredientService;
+        private BrandService brandService;
         private UnitTypeService unitTypeService;
         private ProductPhotoService productPhotoService;
+        private LogsService logsService;
+        private bool isUpdatingGrid;
+        private bool isRepopulating;
+        private Guid? lastSelectedProductId;
+
 
 
         // Store initial form size for relative positioning
         private Size initialFormSize;
         private Dictionary<Control, Rectangle> initialControlBounds;
 
-        public CalculatorForm(Form previousForm, SqlConnection sqlConnection)
+        public CalculatorForm(Form previousForm, SqlConnection? sqlConnection = null)
         {
-            productService = new ProductService(sqlConnection);
-            productIngredientService = new ProductIngredientService(sqlConnection);
-            ingredientService = new IngredientService(sqlConnection);
-            unitTypeService = new UnitTypeService(sqlConnection);
-            productPhotoService = new ProductPhotoService(sqlConnection);
             initialControlBounds = new Dictionary<Control, Rectangle>();
+            brandService = new BrandService();
 
             InitializeComponent();
             this.previousForm = previousForm;
+            isUpdatingGrid = false;
+            isRepopulating = false;
+            lastSelectedProductId = null;
 
-            
+            // Initialize services after InitializeComponent to ensure proper connection state
+            InitializeServices();
+
+            AttachGridEvents();
+            gvIngredientsInfo.ReadOnly = false;
+            gvIngredientsInfo.StandardTab = true;
+            gvIngredientsInfo.EditMode = DataGridViewEditMode.EditOnKeystrokeOrF2;
+            gvIngredientsInfo.AllowUserToAddRows = false;
+            if (gvIngredientsInfo.Columns.Count > 5)
+            {
+                gvIngredientsInfo.Columns[5].ReadOnly = false;
+                gvIngredientsInfo.Columns[5].ValueType = typeof(bool);
+                if (gvIngredientsInfo.Columns[5] is DataGridViewCheckBoxColumn chkCol)
+                {
+                    chkCol.ThreeState = false;
+                    chkCol.TrueValue = true;
+                    chkCol.FalseValue = false;
+                }
+            }
+
             // Add resize event handler
             this.Resize += CalculatorForm_Resize;
-            
+
             // Store initial positions for relative positioning
             StoreInitialPositions();
-            
+
             // Set up auto-maximize
             FormMaximizeHelper.SetupAutoMaximize(this);
         }
 
-        private void UpdateTotalLabel()
+        private void AttachGridEvents()
         {
-            /*var flour = Convert.ToInt32(TxtFlour.Text);
-            var milk = Convert.ToInt32(TxtFlour.Text);
-            var total = 0.0;
-            if (rbtnMinFlour.Checked)
-            {
-                total += PrizeCalculation.GetMinFlourCostProfit(flour);
-            }
-            if (rbtnMaxFlour.Checked)
-            {
-                total += PrizeCalculation.GetMaxFlourCostProfit(flour);
-            }
-            if (rbtnMaxMilk.Checked)
-            {
-                total += PrizeCalculation.GetMaxMilkCostProfit(flour);
-            }
-            if (rbtnMinMilk.Checked)
-            {
-                total += PrizeCalculation.GetMinMilkCostProfit(flour);
-            }
-            lblTotalAmount.Text = total.ToString();*/
+            gvIngredientsInfo.CurrentCellDirtyStateChanged += gvIngredientsInfo_CurrentCellDirtyStateChanged;
+            gvIngredientsInfo.CellValueChanged += gvIngredientsInfo_CellValueChanged;
         }
 
-        private void CreateIngredientRows(List<Guid> ingredientsAmount)
+        private void DetachGridEvents()
         {
-            int lblIngredientNamePosX = 0;
-            int lblIngredientNamePosY = 0;
-            int lblIngredientNameSizeX = 99;
-            int lblIngredientNameSizeY = 19;
+            gvIngredientsInfo.CurrentCellDirtyStateChanged -= gvIngredientsInfo_CurrentCellDirtyStateChanged;
+            gvIngredientsInfo.CellValueChanged -= gvIngredientsInfo_CellValueChanged;
+        }
 
-            int lblUnitAcronymPosX = 230;
-            int lblUnitAcronymPosY = 0;
-            int lblUnitAcronymSizeX = 15;
-            int lblUnitAcronymSizeY = 19;
-
-            int txtIngredientPosX = 100;
-            int txtIngredientPosY = 0;
-            int txtIngredientSizeX = 130;
-            int txtIngredientSizeY = 19;
-
-
-            int ingredientRetailPosX = 350;
-            int ingredientRetailPosY = 0;
-            int ingredientRetailSizeX = 94;
-            int ingredientRetailSizeY = 19;
-
-            int ingredientWholesalePosX = 450;
-            int ingredientWholesalePosY = 0;
-            int ingredientWholesaleSizeX = 94;
-            int ingredientWholesaleSizeY = 19;
-
-            int ingredientPanelRowPosX = -2;
-            int ingredientPanelRowPosY = 0;
-            int ingredientPanelRowSizeX = 1168;
-            int ingredientPanelRowSizeY = 1191;
-            int incrementPanelRowY = 31;
-
-            TextBox TxtIngredientAmount;
-            Label LblingredientName;
-            Label LblunitPrefix;
-            RadioButton RbtnRetailPrize;
-            RadioButton RbtnWholesalePrize;
-
-            int numRow = 0;
-
-            foreach (var ingrId in ingredientsAmount)
+        private void gvIngredientsInfo_CurrentCellDirtyStateChanged(object? sender, EventArgs e)
+        {
+            if (isUpdatingGrid)
             {
-                var ingredient = ingredientService.GetIngredientById(ingrId);
-                var unitType = unitTypeService.GetUnitTypeById(ingredient.UnitTypeId);
-
-                LblingredientName = FormUtils.CreateLabel($"{ingredient.Name}", numRow, lblIngredientNamePosX, lblIngredientNamePosY,
-                    lblIngredientNameSizeX, lblIngredientNameSizeY);
-
-                LblunitPrefix = FormUtils.CreateLabel($"{unitType.Acronym}", numRow, lblUnitAcronymPosX, lblUnitAcronymPosY,
-                    lblUnitAcronymSizeX, lblUnitAcronymSizeY);
-
-                TxtIngredientAmount = FormUtils.CreateTextBox(ingredient.Name, numRow, txtIngredientPosX, txtIngredientPosY,
-                    txtIngredientSizeX, txtIngredientSizeY);
-
-                RbtnRetailPrize = FormUtils.CreateRadioButton("Menor", numRow, ingredientRetailPosX, ingredientRetailPosY,
-                    ingredientRetailSizeX, ingredientRetailSizeY, false);
-
-                RbtnWholesalePrize = FormUtils.CreateRadioButton("Mayor", numRow, ingredientWholesalePosX, ingredientWholesalePosY,
-                    ingredientWholesaleSizeX, ingredientWholesaleSizeY, true);
-
-                PnlIngredients.Controls.Add(
-                    FormUtils.CreateIngredientPanelRow(numRow, LblingredientName, TxtIngredientAmount, LblunitPrefix, RbtnRetailPrize,
-                    RbtnWholesalePrize, ingredientPanelRowPosX, ingredientPanelRowPosY, ingredientPanelRowSizeX, ingredientPanelRowSizeY));
-
-                ingredientPanelRowPosY += incrementPanelRowY;
-                numRow++;
-                FormUtils.EnsureMinimumSpacing(LblingredientName, TxtIngredientAmount, LblunitPrefix, RbtnWholesalePrize);
-                float scaleX = (float)this.Width / initialFormSize.Width;
-                float scaleY = (float)this.Height / initialFormSize.Height;
-                StoreControlBounds(TxtIngredientAmount);
-                AdjustControlLayout(PnlIngredients, scaleX, scaleY);
-                /*AdjustControlLayout(LblunitPrefix, scaleX, scaleY);
-                AdjustControlLayout(TxtIngredientAmount, scaleX, scaleY);
-                AdjustControlLayout(RbtnRetailPrize, scaleX, scaleY);
-                AdjustControlLayout(RbtnWholesalePrize, scaleX, scaleY);*/
+                return;
             }
+            if (gvIngredientsInfo.IsCurrentCellDirty && gvIngredientsInfo.CurrentCell is DataGridViewCheckBoxCell)
+            {
+                gvIngredientsInfo.CommitEdit(DataGridViewDataErrorContexts.Commit);
+            }
+        }
+
+        private void gvIngredientsInfo_CellValueChanged(object? sender, DataGridViewCellEventArgs e)
+        {
+            if (isUpdatingGrid)
+            {
+                return;
+            }
+            if (e.RowIndex < 0)
+            {
+                return;
+            }
+
+            if (e.ColumnIndex == 5)
+            {
+                var row = gvIngredientsInfo.Rows[e.RowIndex];
+                var ingredient = row.Tag as IngredientModel;
+                if (ingredient != null)
+                {
+                    UpdatePrizeInGrid(e.RowIndex, ingredient);
+                    var profitPercentage = !tsProfitPercentageCmb.Text.IsNullOrEmpty() ? tsProfitPercentageCmb.Text : "0";
+                    UpdateSalePriceLabelFromGrid(int.Parse(profitPercentage));
+                    UpdatePurchasePriceLabelFromGrid(0);
+                    UpdateProfitLabelFromGrid();
+                }
+            }
+        }
+
+        private void UpdateSalePriceLabelFromGrid(int percentProfit)
+        {
+            double total = CalculateTotal(percentProfit);
+            lblSalePrice.Text = total.ToString();
+        }
+
+        private void UpdatePurchasePriceLabelFromGrid(int percentProfit)
+        {
+            double total = CalculateTotal(percentProfit);
+            lblPurchasePrice.Text = total.ToString();
+        }
+
+        private void UpdateProfitLabelFromGrid()
+        {
+            double total = double.Parse(lblSalePrice.Text) - double.Parse(lblPurchasePrice.Text);
+            lblProfit.Text = total.ToString();
+        }
+
+        public double CalculateTotal(int percentProfit)
+        {
+            double total = 0.0;
+            for (int rowIndex = 0; rowIndex < gvIngredientsInfo.Rows.Count; rowIndex++)
+            {
+                var row = gvIngredientsInfo.Rows[rowIndex];
+                if (row.IsNewRow) continue;
+                var ingredient = row.Tag as IngredientModel;
+                if (ingredient == null) continue;
+                var prizeObj = row.Cells[4].Value;
+                bool useWholesale = Convert.ToBoolean(row.Cells[5].Value);
+                var ingredientPriceObj = useWholesale ? ingredient.WholesalePrice : ingredient.RetailPrice;
+                double prizeVal = Convert.ToDouble(prizeObj);
+                double ingredientPriceVal = Convert.ToDouble(ingredientPriceObj);
+                total += PrizeCalculation.CalculateWeightVolCost(percentProfit, prizeVal, ingredientPriceVal, ingredient.PackQty);
+            }
+            return total;
+        }
+
+        /// <summary>
+        /// Initializes all services with fresh connections
+        /// </summary>
+        private void InitializeServices()
+        {
+            try
+            {
+                // Clear connection cache and reset environment to force re-reading
+                EnvironmentConfig.Reset();
+                DatabaseConnectionManager.ClearCache();
+
+                // Create services using centralized connection management
+                productService = new ProductService();
+                productIngredientService = new ProductIngredientService();
+                ingredientService = new IngredientService();
+                unitTypeService = new UnitTypeService();
+                productPhotoService = new ProductPhotoService();
+                logsService = new LogsService();
+
+                // Log successful initialization
+                logsService.CreateLog("CalculatorForm services initialized successfully", "Info", "System");
+            }
+            catch (Exception ex)
+            {
+                // If we can't create services, show error but don't crash the form
+                MessageBox.Show($"Failed to initialize database services: {ex.Message}", "Initialization Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+                // Create a minimal logs service for error reporting
+                try
+                {
+                    logsService = new LogsService();
+                    logsService.CreateLog($"Failed to initialize CalculatorForm services: {ex.Message}", "Error", "System");
+                }
+                catch
+                {
+                    // If even logging fails, just continue without services
+                }
+            }
+        }
+
+        private void UpdateTotalLabel(List<Guid> prodIngrId)
+        {
+            try
+            {
+                double total = 0.0;
+                int rowIndex = 0;
+
+                foreach (var id in prodIngrId)
+                {
+                    var prizeObj = gvIngredientsInfo.Rows[rowIndex].Cells[4].Value;
+                    var dfltPrizeObj = gvIngredientsInfo.Rows[rowIndex].Cells[5].Value;
+                    var prodIng = productIngredientService.GetProductIngredientById(id);
+
+                    bool useWholesale = Convert.ToBoolean(dfltPrizeObj);
+                    var ingredientEntity = ingredientService.GetIngredientById(prodIng.IngredientId);
+                    var ingredientPriceObj = useWholesale ? ingredientEntity.WholesalePrice : ingredientEntity.RetailPrice;
+
+                    double prizeVal = Convert.ToDouble(prizeObj);
+                    double ingredientPriceVal = Convert.ToDouble(ingredientPriceObj);
+
+                    total += PrizeCalculation.CalculateWeightVolCost(50, prizeVal, ingredientPriceVal, ingredientEntity.PackQty);
+                    rowIndex++;
+                }
+                lblSalePrice.Text = total.ToString();
+            }
+            catch (Exception ex)
+            {
+                logsService.CreateLog($"Failed to load product list: {ex.Message}", "Error", "System");
+                MessageBox.Show($"Failed to load products: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void UpdatePrizeInGrid(int rowIndex, IngredientModel ingredient)
+        {
+            var qtyRetail = ingredient.RetailPrice;
+            var qtyWholesale = ingredient.WholesalePrice;
+            bool useWholesale = Convert.ToBoolean(gvIngredientsInfo.Rows[rowIndex].Cells[5].Value);
+            try
+            {
+                isUpdatingGrid = true;
+                gvIngredientsInfo.Rows[rowIndex].Cells[4].Value = useWholesale ? qtyWholesale : qtyRetail;
+            }
+            finally
+            {
+                isUpdatingGrid = false;
+            }
+        }
+
+        private void CreateIngredientRows(List<Guid> prodIngrId)
+        {
+            try
+            {
+                foreach (var id in prodIngrId)
+                {
+                    int rowIndex = gvIngredientsInfo.Rows.Add();
+                    var prodIngId = productIngredientService.GetProductIngredientById(id);
+                    var ingredient = ingredientService.GetIngredientById(prodIngId.IngredientId);
+                    var brand = ingredient.BrandId.HasValue ? brandService.GetBrandById((Guid)ingredient.BrandId).Name : string.Empty;
+                    var unitType = unitTypeService.GetUnitTypeById((Guid)ingredient.UnitTypeId);
+
+                    var qtyRetail = ingredient.RetailPrice;
+                    var qtyWholesale = ingredient.WholesalePrice;
+
+                    var dfaultSelectedRetail = ingredient.DefaultPrice == "Retail";
+                    var dfaultSelectedWhole = ingredient.DefaultPrice == "Wholesale";
+
+
+                    //ingrediente
+                    gvIngredientsInfo.Rows[rowIndex].Cells[0].Value = ingredient.Name;
+                    //marca
+                    gvIngredientsInfo.Rows[rowIndex].Cells[1].Value = brand;
+                    //cantida
+                    gvIngredientsInfo.Rows[rowIndex].Cells[2].Value = prodIngId.IngredientQtyPerPrep;
+                    //unidad
+                    gvIngredientsInfo.Rows[rowIndex].Cells[3].Value = unitType.Acronym;
+                    //default precio
+                    gvIngredientsInfo.Rows[rowIndex].Cells[5].ReadOnly = false;
+                    var defaultIsWholesale = ingredient.DefaultPrice == "Retail" ? false : true;
+                    gvIngredientsInfo.Rows[rowIndex].Cells[5].Value = defaultIsWholesale;
+                    gvIngredientsInfo.CommitEdit(DataGridViewDataErrorContexts.Commit);
+                    // store ingredient for later updates
+                    gvIngredientsInfo.Rows[rowIndex].Tag = ingredient;
+                    //precio
+                    UpdatePrizeInGrid(rowIndex, ingredient);
+                    rowIndex++;
+                }
+            }
+            catch (Exception ex)
+            {
+                logsService.CreateLog($"Failed to load ingredient list: {ex.Message}", "Error", "System");
+                MessageBox.Show($"Failed to load ingredients: {ex}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+
         }
 
         private void FrmCupcake_Load(object sender, EventArgs e)
         {
-            foreach (var item in productService.GetAllProducts())
+            RefreshProductList();
+        }
+
+        /// <summary>
+        /// Refreshes the product list from the current environment database
+        /// This ensures the TSCmbProductList always shows data from the correct environment
+        /// </summary>
+        private void RefreshProductList()
+        {
+            try
             {
-                TSCmbProductList.Items.Add(item.Name); 
+                // Clear connection cache and reset environment to force re-reading
+                EnvironmentConfig.Reset();
+                DatabaseConnectionManager.ClearCache();
+
+                TSCmbProductList.Items.Clear();
+                var products = productService.GetAllProducts();
+
+                foreach (var item in products)
+                {
+                    TSCmbProductList.Items.Add(item.Name);
+                }
+
+                // Log how many products were loaded
+                logsService.CreateLog($"Loaded {products.Count()} products", "Info", "System");
             }
-            
+            catch (Exception ex)
+            {
+                logsService.CreateLog($"Failed to refresh product list: {ex.Message}", "Error", "System");
+                MessageBox.Show($"Failed to load products: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
-        private void PnlIngredients_Click(object sender, EventArgs e)
+        /// <summary>
+        /// Public method to refresh the product list when environment changes
+        /// This can be called from parent forms or other components
+        /// </summary>
+        public void RefreshProductListFromCurrentEnvironment()
         {
-            UpdateTotalLabel();
+            RefreshProductList();
         }
 
-        private void rbtnMin_CheckedChanged(object sender, EventArgs e)
+        /// <summary>
+        /// Forces a complete refresh of all services and product list with fresh connections
+        /// This should be called when environment changes to ensure all data comes from the correct database
+        /// </summary>
+        public void ForceRefreshAllWithFreshConnections()
         {
-            UpdateTotalLabel();
+            try
+            {
+                // Dispose existing services to free up connections
+                productService = null;
+                productIngredientService = null;
+                ingredientService = null;
+                unitTypeService = null;
+                productPhotoService = null;
+                logsService = null;
+
+                // Force environment to Testing and clear all caches
+                EnvironmentConfig.ForceEnvironment(EnvironmentConfig.Environment.Testing);
+                DatabaseConnectionManager.ClearCache();
+
+                // Reinitialize all services with fresh connections
+                InitializeServices();
+
+                // Refresh the product list
+                RefreshProductList();
+
+                MessageBox.Show("All services and product list refreshed with fresh connections from current environment.",
+                    "Refresh Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to refresh services: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
-        private void rgbtnMilk_CheckedChanged(object sender, EventArgs e)
+        /// <summary>
+        /// Forces a refresh of the product list with a completely fresh connection
+        /// This ensures we're using the current environment configuration
+        /// </summary>
+        public void ForceRefreshProductListWithFreshConnection()
         {
-            UpdateTotalLabel();
+            try
+            {
+                // Create a fresh service to ensure we're using current environment
+                var freshProductService = new ProductService();
+
+                // Get connection info for debugging
+                var connectionInfo = DatabaseConnectionManager.GetConnectionInfo();
+                var currentEnvironment = EnvironmentConfig.CurrentEnvironment;
+
+                // Log the current environment and connection details
+                logsService.CreateLog(
+                    $"Force refreshing product list with fresh connection - Environment: {currentEnvironment}, " +
+                    $"Database: {connectionInfo.Database}, Server: {connectionInfo.Server}",
+                    "Info", "System");
+
+                TSCmbProductList.Items.Clear();
+                var products = freshProductService.GetAllProducts();
+
+                foreach (var item in products)
+                {
+                    TSCmbProductList.Items.Add(item.Name);
+                }
+
+                // Log how many products were loaded
+                logsService.CreateLog(
+                    $"Force refresh loaded {products.Count()} products from {connectionInfo.Database} database",
+                    "Info", "System");
+            }
+            catch (Exception ex)
+            {
+                logsService.CreateLog($"Failed to force refresh product list: {ex.Message}", "Error", "System");
+                MessageBox.Show($"Failed to force refresh products: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void LoadImage(object sender, EventArgs e, Guid productId)
@@ -187,20 +434,95 @@ namespace CakePrizeView
 
         private void CmbCupcakeList_SelectedValueChanged(object sender, EventArgs e)
         {
-            PnlIngredients.Controls.Clear();
-            var productId = productService.GetAllProducts()
-                .Where(product => product.Name == TSCmbProductList.Text)
-                .Select(item => item.Id).First();
-            var test = productIngredientService.GetProductIngredientByProductId(productId);
+            try
+            {
+                var productId = productService.GetAllProducts()
+                    .Where(product => product.Name == TSCmbProductList.Text)
+                    .Select(item => item.Id).First();
+                var test = productIngredientService.GetProductIngredientByProductId(productId);
+                if (isRepopulating)
+                {
+                    return;
+                }
+                // Skip repopulate if same product selected (prevents double refresh)
+                if (lastSelectedProductId.HasValue && lastSelectedProductId.Value == productId)
+                {
+                    return;
+                }
+                lastSelectedProductId = productId;
+                isRepopulating = true;
+                // Defer repopulation to avoid running during DataGridView internal notifications
+                BeginInvoke(new Action(() =>
+                {
+                    try
+                    {
+                        RepopulateGrid(productId);
+                    }
+                    finally
+                    {
+                        isRepopulating = false;
+                    }
+                }));
+            }
+            catch (Exception ex)
+            {
+                logsService.CreateLog(ex.Message, "Error", "Marco Llano");
+                throw;
+            }
+        }
 
-            var prodIngredients = productIngredientService.GetProductIngredientByProductId(productId)
-                .Where(prodId => prodId.ProductId == productId).Select(item => item.IngredientId).ToList();
+        private void RepopulateGrid(Guid productId)
+        {
+            bool prevAllowAdd = gvIngredientsInfo.AllowUserToAddRows;
+            bool prevEnabled = gvIngredientsInfo.Enabled;
+            try
+            {
+                isUpdatingGrid = true;
+                DetachGridEvents();
+                if (gvIngredientsInfo.IsCurrentCellInEditMode)
+                {
+                    gvIngredientsInfo.EndEdit();
+                }
+                gvIngredientsInfo.Enabled = false;
+                gvIngredientsInfo.AllowUserToAddRows = false;
+                gvIngredientsInfo.SuspendLayout();
+                gvIngredientsInfo.ClearSelection();
+                gvIngredientsInfo.Rows.Clear();
+                gvIngredientsInfo.Refresh();
 
-            CreateIngredientRows(prodIngredients);
-            UpdateTotalLabel();
+                var productIngredientList = productIngredientService.GetProductIngredientByProductId(productId);
+                if (productIngredientList == null)
+                {
+                    try { logsService.CreateLog($"Product '{TSCmbProductList.Text}' ({productId}) missing ingredients (null list).", "Warning", "System"); } catch { }
+                    MessageBox.Show("The selected product is missing required data (ingredients).", "Missing Data", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
 
-            LblFormTitle.Text = TSCmbProductList.Text;
-            LoadImage(sender, e, productId);
+                var prodIngredients = productIngredientList
+                    .Where(prodId => prodId != null && prodId.ProductId == productId)
+                    .Select(item => item.Id)
+                    .ToList();
+                if (prodIngredients == null || prodIngredients.Count == 0)
+                {
+                    try { logsService.CreateLog($"Product '{TSCmbProductList.Text}' ({productId}) has no ingredients configured.", "Warning", "System"); } catch { }
+                    MessageBox.Show("The selected product has no ingredients configured.", "Missing Data", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                CreateIngredientRows(prodIngredients);
+                UpdateTotalLabel(prodIngredients);
+
+                LblFormTitle.Text = TSCmbProductList.Text;
+                LoadImage(this, EventArgs.Empty, productId);
+            }
+            finally
+            {
+                gvIngredientsInfo.AllowUserToAddRows = prevAllowAdd;
+                gvIngredientsInfo.Enabled = prevEnabled || true;
+                gvIngredientsInfo.ResumeLayout();
+                isUpdatingGrid = false;
+                AttachGridEvents();
+            }
         }
 
         private void btnBack_Click(object sender, EventArgs e)
@@ -215,9 +537,12 @@ namespace CakePrizeView
             previousForm.Close();
         }
 
+
+
         private void TSMenuItem_Click(object sender, EventArgs e)
         {
-            TSCmbProductList.Items.Clear();
+            // Refresh the product list to ensure it's using the current environment
+            RefreshProductList();
             TSLblSelectedCake.Text = sender.ToString();
         }
 
@@ -228,16 +553,14 @@ namespace CakePrizeView
         {
             initialFormSize = this.Size;
             initialControlBounds = new Dictionary<Control, Rectangle>();
-            
+
             // Store initial bounds for all controls that need responsive positioning
             StoreControlBounds(imgProduct);
             StoreControlBounds(LblFormTitle);
             StoreControlBounds(BtnBack);
             StoreControlBounds(BtnClose);
-            StoreControlBounds(PnlIngredients);
             StoreControlBounds(pnlTotalPrices);
-            StoreControlBounds(LblSelectPriceTitle);
-            StoreControlBounds(lblIngredientsTitle);
+            StoreControlBounds(gvIngredientsInfo);
         }
 
         /// <summary>
@@ -248,7 +571,7 @@ namespace CakePrizeView
             if (control != null)
             {
                 initialControlBounds[control] = control.Bounds;
-                
+
                 // Store bounds for child controls
                 foreach (Control child in control.Controls)
                 {
@@ -274,11 +597,9 @@ namespace CakePrizeView
             AdjustControlLayout(LblFormTitle, scaleX, scaleY);
             AdjustControlLayout(BtnBack, scaleX, scaleY);
             AdjustControlLayout(BtnClose, scaleX, scaleY);
-            AdjustControlLayout(PnlIngredients, scaleX, scaleY);
+            AdjustControlLayout(gvIngredientsInfo, scaleX, scaleY);
             AdjustControlLayout(pnlTotalPrices, scaleX, scaleY);
-            AdjustControlLayout(LblSelectPriceTitle, scaleX, scaleY);
-            AdjustControlLayout(lblIngredientsTitle, scaleX, scaleY);
-            
+
             // Ensure minimum spacing between controls
             EnsureMinimumSpacing();
         }
@@ -291,13 +612,13 @@ namespace CakePrizeView
             if (control != null && initialControlBounds.ContainsKey(control))
             {
                 Rectangle initialBounds = initialControlBounds[control];
-                
+
                 // Calculate new position and size
                 int newX = (int)(initialBounds.X * scaleX);
                 int newY = (int)(initialBounds.Y * scaleY);
                 int newWidth = (int)(initialBounds.Width * scaleX);
                 int newHeight = (int)(initialBounds.Height * scaleY);
-                
+
                 // Apply new bounds
                 control.Bounds = new Rectangle(newX, newY, newWidth, newHeight);
             }
@@ -309,7 +630,7 @@ namespace CakePrizeView
         private void EnsureMinimumSpacing()
         {
             const int minSpacing = 10;
-            
+
             /*// Ensure minimum spacing between back and close buttons
             if (BtnBack.Right + minSpacing > BtnClose.Left)
             {
@@ -317,11 +638,12 @@ namespace CakePrizeView
             }*/
 
             // Ensure minimum spacing between picture and ingredients panel
-            if (imgProduct.Right + minSpacing > PnlIngredients.Left)
+            if (imgProduct.Right + minSpacing > gvIngredientsInfo.Left)
             {
-                PnlIngredients.Left = imgProduct.Right + minSpacing;
-            }            
+                gvIngredientsInfo.Left = imgProduct.Right + minSpacing;
+            }
         }
     }
 
 }
+
