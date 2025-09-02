@@ -202,26 +202,34 @@ namespace CakePrizeView
 
         private void UpdateTotalLabel(List<Guid> prodIngrId)
         {
-            double total = 0.0;
-            int rowIndex = 0;
-
-            foreach (var id in prodIngrId)
+            try
             {
-                var prizeObj = gvIngredientsInfo.Rows[rowIndex].Cells[4].Value;
-                var dfltPrizeObj = gvIngredientsInfo.Rows[rowIndex].Cells[5].Value;
-                var prodIng = productIngredientService.GetProductIngredientById(id);
+                double total = 0.0;
+                int rowIndex = 0;
 
-                bool useWholesale = Convert.ToBoolean(dfltPrizeObj);
-                var ingredientEntity = ingredientService.GetIngredientById(prodIng.IngredientId);
-                var ingredientPriceObj = useWholesale ? ingredientEntity.WholesalePrice : ingredientEntity.RetailPrice;
+                foreach (var id in prodIngrId)
+                {
+                    var prizeObj = gvIngredientsInfo.Rows[rowIndex].Cells[4].Value;
+                    var dfltPrizeObj = gvIngredientsInfo.Rows[rowIndex].Cells[5].Value;
+                    var prodIng = productIngredientService.GetProductIngredientById(id);
 
-                double prizeVal = Convert.ToDouble(prizeObj);
-                double ingredientPriceVal = Convert.ToDouble(ingredientPriceObj);
+                    bool useWholesale = Convert.ToBoolean(dfltPrizeObj);
+                    var ingredientEntity = ingredientService.GetIngredientById(prodIng.IngredientId);
+                    var ingredientPriceObj = useWholesale ? ingredientEntity.WholesalePrice : ingredientEntity.RetailPrice;
 
-                total += PrizeCalculation.CalculateWeightVolCost(50, prizeVal, ingredientPriceVal, ingredientEntity.PackQty);
-                rowIndex++;
+                    double prizeVal = Convert.ToDouble(prizeObj);
+                    double ingredientPriceVal = Convert.ToDouble(ingredientPriceObj);
+
+                    total += PrizeCalculation.CalculateWeightVolCost(50, prizeVal, ingredientPriceVal, ingredientEntity.PackQty);
+                    rowIndex++;
+                }
+                lblSalePrice.Text = total.ToString();
             }
-            lblSalePrice.Text = total.ToString();
+            catch (Exception ex)
+            {
+                logsService.CreateLog($"Failed to load product list: {ex.Message}", "Error", "System");
+                MessageBox.Show($"Failed to load products: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void UpdatePrizeInGrid(int rowIndex, IngredientModel ingredient)
@@ -242,41 +250,49 @@ namespace CakePrizeView
 
         private void CreateIngredientRows(List<Guid> prodIngrId)
         {
-
-            foreach (var id in prodIngrId)
+            try
             {
-                int rowIndex = gvIngredientsInfo.Rows.Add();
-                var prodIngId = productIngredientService.GetProductIngredientById(id);
-                var ingredient = ingredientService.GetIngredientById(prodIngId.IngredientId);
-                var brand = ingredient.BrandId.HasValue ? brandService.GetBrandById((Guid)ingredient.BrandId).Name : string.Empty;
-                var unitType = unitTypeService.GetUnitTypeById((Guid)ingredient.UnitTypeId);
+                foreach (var id in prodIngrId)
+                {
+                    int rowIndex = gvIngredientsInfo.Rows.Add();
+                    var prodIngId = productIngredientService.GetProductIngredientById(id);
+                    var ingredient = ingredientService.GetIngredientById(prodIngId.IngredientId);
+                    var brand = ingredient.BrandId.HasValue ? brandService.GetBrandById((Guid)ingredient.BrandId).Name : string.Empty;
+                    var unitType = unitTypeService.GetUnitTypeById((Guid)ingredient.UnitTypeId);
 
-                var qtyRetail = ingredient.RetailPrice;
-                var qtyWholesale = ingredient.WholesalePrice;
+                    var qtyRetail = ingredient.RetailPrice;
+                    var qtyWholesale = ingredient.WholesalePrice;
 
-                var dfaultSelectedRetail = ingredient.DefaultPrice == "Retail";
-                var dfaultSelectedWhole = ingredient.DefaultPrice == "Wholesale";
+                    var dfaultSelectedRetail = ingredient.DefaultPrice == "Retail";
+                    var dfaultSelectedWhole = ingredient.DefaultPrice == "Wholesale";
 
 
-                //ingrediente
-                gvIngredientsInfo.Rows[rowIndex].Cells[0].Value = ingredient.Name;
-                //marca
-                gvIngredientsInfo.Rows[rowIndex].Cells[1].Value = brand;
-                //cantida
-                gvIngredientsInfo.Rows[rowIndex].Cells[2].Value = prodIngId.IngredientQtyPerPrep;
-                //unidad
-                gvIngredientsInfo.Rows[rowIndex].Cells[3].Value = unitType.Acronym;
-                //default precio
-                gvIngredientsInfo.Rows[rowIndex].Cells[5].ReadOnly = false;
-                var defaultIsWholesale = ingredient.DefaultPrice == "Retail" ? false : true;
-                gvIngredientsInfo.Rows[rowIndex].Cells[5].Value = defaultIsWholesale;
-                gvIngredientsInfo.CommitEdit(DataGridViewDataErrorContexts.Commit);
-                // store ingredient for later updates
-                gvIngredientsInfo.Rows[rowIndex].Tag = ingredient;
-                //precio
-                UpdatePrizeInGrid(rowIndex, ingredient);
-                rowIndex++;
+                    //ingrediente
+                    gvIngredientsInfo.Rows[rowIndex].Cells[0].Value = ingredient.Name;
+                    //marca
+                    gvIngredientsInfo.Rows[rowIndex].Cells[1].Value = brand;
+                    //cantida
+                    gvIngredientsInfo.Rows[rowIndex].Cells[2].Value = prodIngId.IngredientQtyPerPrep;
+                    //unidad
+                    gvIngredientsInfo.Rows[rowIndex].Cells[3].Value = unitType.Acronym;
+                    //default precio
+                    gvIngredientsInfo.Rows[rowIndex].Cells[5].ReadOnly = false;
+                    var defaultIsWholesale = ingredient.DefaultPrice == "Retail" ? false : true;
+                    gvIngredientsInfo.Rows[rowIndex].Cells[5].Value = defaultIsWholesale;
+                    gvIngredientsInfo.CommitEdit(DataGridViewDataErrorContexts.Commit);
+                    // store ingredient for later updates
+                    gvIngredientsInfo.Rows[rowIndex].Tag = ingredient;
+                    //precio
+                    UpdatePrizeInGrid(rowIndex, ingredient);
+                    rowIndex++;
+                }
             }
+            catch (Exception ex)
+            {
+                logsService.CreateLog($"Failed to load ingredient list: {ex.Message}", "Error", "System");
+                MessageBox.Show($"Failed to load ingredients: {ex}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+
         }
 
         private void FrmCupcake_Load(object sender, EventArgs e)
