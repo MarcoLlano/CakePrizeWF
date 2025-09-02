@@ -1,17 +1,14 @@
 ﻿using CakePrizeDB.Constants;
 using CakePrizeDB.Models;
+using CakePrizeDB.Services;
 using Microsoft.Data.SqlClient;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CakePrizeDB.Repositories
 {
     internal class IngredientRepository
     {
         private readonly SqlConnection _connection;
+
         public IngredientRepository(SqlConnection sqlConnection)
         {
             _connection = sqlConnection ?? throw new ArgumentNullException(nameof(sqlConnection));
@@ -48,31 +45,39 @@ namespace CakePrizeDB.Repositories
 
         public IngredientModel? GetById(Guid id)
         {
-            using var command = new SqlCommand(DatabaseQueries.Ingredient.GetById, _connection);
-            command.Parameters.AddWithValue("@IngredientId", id);
-
-            using var reader = command.ExecuteReader();
-            if (reader.Read())
+            try
             {
-                return new IngredientModel
-                {
-                    Id = reader.GetGuid(0),
-                    Name = reader.GetString(1),
-                    UnitTypeId = reader.GetGuid(2),
-                    BrandId = reader.IsDBNull(3) ? null : reader.GetGuid(3),
-                    RetailPrice = (float)reader.GetDouble(4),
-                    WholesalePrice = (float)reader.GetDouble(5),
-                    DefaultPrice = reader.GetString(6),
-                    PackQty = reader.GetInt32(7),
-                    Comments = reader.GetString(8),
-                    CreatedDate = reader.GetDateTime(9),
-                    CreatedUser = reader.GetString(10),
-                    ModifiedDate = reader.GetDateTime(11),
-                    ModifiedUser = reader.GetString(12)
-                };
-            }
+                using var command = new SqlCommand(DatabaseQueries.Ingredient.GetById, _connection);
+                command.Parameters.AddWithValue("@IngredientId", id);
 
-            return null;
+                using var reader = command.ExecuteReader();
+                if (reader.Read())
+                {
+                    return new IngredientModel
+                    {
+                        Id = reader.GetGuid(0),
+                        Name = reader.GetString(1),
+                        UnitTypeId = reader.GetGuid(2),
+                        BrandId = reader.IsDBNull(3) ? null : reader.GetGuid(3),
+                        RetailPrice = (float)reader.GetDouble(4),
+                        WholesalePrice = (float)reader.GetDouble(5),
+                        DefaultPrice = reader.GetString(6),
+                        PackQty = reader.GetInt32(7),
+                        Comments = reader.GetString(8),
+                        CreatedDate = reader.GetDateTime(9),
+                        CreatedUser = reader.GetString(10),
+                        ModifiedDate = reader.GetDateTime(11),
+                        ModifiedUser = reader.GetString(12)
+                    };
+                }
+
+                return null;
+            }
+            catch (System.Data.SqlTypes.SqlNullValueException e)
+            {
+                return null;
+            }
+            
         }
 
         public void Insert(IngredientModel ingredient)
