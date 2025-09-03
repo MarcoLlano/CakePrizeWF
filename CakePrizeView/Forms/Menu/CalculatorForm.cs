@@ -7,6 +7,7 @@ using CakePrizeDB.Services;
 using CakePrizeView.Utils;
 using Microsoft.Data.SqlClient;
 using Microsoft.IdentityModel.Tokens;
+using System.Collections;
 using static CakePrizeDB.Constants.DatabaseQueries;
 
 namespace CakePrizeView
@@ -200,7 +201,7 @@ namespace CakePrizeView
             }
         }
 
-        private void UpdateTotalLabel(List<Guid> prodIngrId)
+        private void UpdateTotalLabel(List<Guid> prodIngrId, int PercentageProfit)
         {
             try
             {
@@ -220,7 +221,7 @@ namespace CakePrizeView
                     double prizeVal = Convert.ToDouble(prizeObj);
                     double ingredientPriceVal = Convert.ToDouble(ingredientPriceObj);
 
-                    total += PrizeCalculation.CalculateWeightVolCost(50, prizeVal, ingredientPriceVal, ingredientEntity.PackQty);
+                    total += PrizeCalculation.CalculateWeightVolCost(PercentageProfit, prizeVal, ingredientPriceVal, ingredientEntity.PackQty);
                     rowIndex++;
                 }
                 lblSalePrice.Text = total.ToString();
@@ -314,10 +315,10 @@ namespace CakePrizeView
 
                 TSCmbProductList.Items.Clear();
                 var products = productService.GetAllProducts();
-
-                foreach (var item in products)
+                
+                foreach (var item in FormUtils.SortProducts(products))
                 {
-                    TSCmbProductList.Items.Add(item.Name);
+                    TSCmbProductList.Items.Add(item);
                 }
 
                 // Log how many products were loaded
@@ -471,6 +472,45 @@ namespace CakePrizeView
             }
         }
 
+        private void CmbPercentageList_SelectedValueChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                var productId = productService.GetAllProducts()
+                    .Where(product => product.Name == TSCmbProductList.Text)
+                    .Select(item => item.Id).First();
+
+                var productIngredientList = productIngredientService.GetProductIngredientByProductId(productId);
+
+                if (productIngredientList == null)
+                {
+                    try { logsService.CreateLog($"Product '{TSCmbProductList.Text}' ({productId}) missing ingredients (null list).", "Warning", "System"); } catch { }
+                    MessageBox.Show("The selected product is missing required data (ingredients).", "Missing Data", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                var prodIngredients = productIngredientList
+                    .Where(prodId => prodId != null && prodId.ProductId == productId)
+                    .Select(item => item.Id)
+                    .ToList();
+                if (prodIngredients == null || prodIngredients.Count == 0)
+                {
+                    try { logsService.CreateLog($"Product '{TSCmbProductList.Text}' ({productId}) has no ingredients configured.", "Warning", "System"); } catch { }
+                    MessageBox.Show("The selected product has no ingredients configured.", "Missing Data", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                UpdateTotalLabel(prodIngredients, int.Parse(tsProfitPercentageCmb.Text));
+                UpdatePurchasePriceLabelFromGrid(0);
+                UpdateProfitLabelFromGrid();
+            }
+            catch (Exception ex)
+            {
+                logsService.CreateLog(ex.Message, "Error", "Marco Llano");
+                throw;
+            }
+        }
+
         private void RepopulateGrid(Guid productId)
         {
             bool prevAllowAdd = gvIngredientsInfo.AllowUserToAddRows;
@@ -510,10 +550,12 @@ namespace CakePrizeView
                 }
 
                 CreateIngredientRows(prodIngredients);
-                UpdateTotalLabel(prodIngredients);
+                UpdateTotalLabel(prodIngredients, int.Parse(tsProfitPercentageCmb.Text));
 
                 LblFormTitle.Text = TSCmbProductList.Text;
                 LoadImage(this, EventArgs.Empty, productId);
+                UpdatePurchasePriceLabelFromGrid(0);
+                UpdateProfitLabelFromGrid();
             }
             finally
             {

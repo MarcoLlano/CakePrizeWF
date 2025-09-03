@@ -1,4 +1,7 @@
 ﻿
+using CakePrizeDB.Models;
+using System.Collections;
+
 namespace CakePrizeView.Utils
 {
     public static class FormUtils
@@ -108,6 +111,17 @@ namespace CakePrizeView.Utils
                     StoreControlBounds(child, initialControlBounds);
                 }
             }
+        }
+
+        internal static ArrayList SortProducts(List<ProductModel> products)
+        {
+            ArrayList al = new ArrayList();
+            foreach (var item in products)
+            {
+                al.Add(item.Name);
+            }
+            al.Sort();
+            return al;
         }
     }
 }

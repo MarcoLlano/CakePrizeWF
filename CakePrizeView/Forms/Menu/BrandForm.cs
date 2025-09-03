@@ -108,6 +108,8 @@ namespace CakePrizeView.Forms.ingredients
             StoreControlBounds(btnBack);
             StoreControlBounds(richTBBrandComments);
             StoreControlBounds(btnSaveBrand);
+            StoreControlBounds(lblIngredientName);
+            StoreControlBounds(txtBrandName);
             StoreControlBounds(btnClearBrandTexts);
         }
 
@@ -136,6 +138,8 @@ namespace CakePrizeView.Forms.ingredients
             AdjustControlLayout(LblIngredientTitle, scaleX, scaleY);
             AdjustControlLayout(btnClose, scaleX, scaleY);
             AdjustControlLayout(btnBack, scaleX, scaleY);
+            AdjustControlLayout(lblIngredientName, scaleX, scaleY);
+            AdjustControlLayout(txtBrandName, scaleX, scaleY);
             AdjustControlLayout(richTBBrandComments, scaleX, scaleY);
             AdjustControlLayout(btnSaveBrand, scaleX, scaleY);
             AdjustControlLayout(btnClearBrandTexts, scaleX, scaleY);
