@@ -370,7 +370,7 @@ namespace CakePrizeView.Forms.Menu.Products
                     string ingredientName = gvProductIngredientList.Rows[rowIndex].Cells[0].Value.ToString();
                     string brandName = gvProductIngredientList.Rows[rowIndex].Cells[2].Value.ToString();
 
-                    var brandId = brandService.GetAllBrands()
+                    Guid? brandId = brandService.GetAllBrands()
                             .Where(d => d.Name == brandName)
                             .Select(t => t.Id)
                             .FirstOrDefault();
@@ -386,14 +386,14 @@ namespace CakePrizeView.Forms.Menu.Products
                         {
                             ingredientId = ingredientService.GetAllIngredients()
                             .Where(d => d.Name == ingredientName)
-                            .Select(t => t.Id)
+                            .Select(t => t.Id ?? Guid.Empty)
                             .FirstOrDefault();
                         }
                         else
                         {
                             ingredientId = ingredientService.GetAllIngredients()
                                 .Where(d => d.Name == ingredientName && d.BrandId == brandId)
-                                .Select(t => t.Id)
+                                .Select(t => t.Id ?? Guid.Empty)
                                 .FirstOrDefault();
                         }
                         

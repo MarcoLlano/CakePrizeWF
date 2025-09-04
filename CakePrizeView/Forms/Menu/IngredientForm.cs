@@ -129,10 +129,10 @@ namespace CakePrizeView.Forms.ingredients
                 Guid? ingredientBrandId = null;
                 if (!string.IsNullOrEmpty(cmbIngredientBrand.Text))
                 {
-                    var brandMatch = GetAllBrands().FirstOrDefault(d => d.Value == cmbIngredientBrand.Text);
-                    if (brandMatch.Key != Guid.Empty)
+                    var brandEntry = GetAllBrands().FirstOrDefault(d => d.Value == cmbIngredientBrand.Text);
+                    if (!brandEntry.Equals(default(KeyValuePair<Guid, string>)))
                     {
-                        ingredientBrandId = brandMatch.Key;
+                        ingredientBrandId = brandEntry.Key;
                     }
                 }
 
@@ -164,12 +164,15 @@ namespace CakePrizeView.Forms.ingredients
 
         private Dictionary<Guid, string> GetAllBrands()
         {
-            Dictionary<Guid, string> units = new Dictionary<Guid, string>();
+            Dictionary<Guid, string> brandMap = new Dictionary<Guid, string>();
             brandService.GetAllBrands().ForEach(brand =>
             {
-                units.Add(brand.Id, brand.Name);
+                if (brand.Id.HasValue && brand.Id.Value != Guid.Empty)
+                {
+                    brandMap[brand.Id.Value] = brand.Name;
+                }
             });
-            return units;
+            return brandMap;
         }
 
         private void LoadUnitTypes()

@@ -20,7 +20,7 @@ namespace CakePrizeDB.Repositories
         internal List<BrandModel> GetAll()
         {
             var brands = new List<BrandModel>();
-            using var command = new SqlCommand(DatabaseQueries.Brand.GetAll, _connection);
+            using var command = new SqlCommand(DatabaseQueries.Brand.GetAllBrands, _connection);
             using var reader = command.ExecuteReader();
 
             while (reader.Read())
@@ -35,9 +35,9 @@ namespace CakePrizeDB.Repositories
             return brands;
         }
 
-        public BrandModel? GetById(Guid id)
+        public BrandModel? GetById(Guid? id)
         {
-            using var command = new SqlCommand(DatabaseQueries.Brand.GetById, _connection);
+            using var command = new SqlCommand(DatabaseQueries.Brand.GetBrandById, _connection);
             command.Parameters.AddWithValue("@BrandId", id);
 
             using var reader = command.ExecuteReader();
@@ -56,12 +56,24 @@ namespace CakePrizeDB.Repositories
 
         public void Insert(BrandModel brand)
         {
-            using var command = new SqlCommand(DatabaseQueries.Brand.Insert, _connection);
+            using var command = new SqlCommand(DatabaseQueries.Brand.InsertBrand, _connection);
             command.Parameters.AddWithValue("@Id", brand.Id);
             command.Parameters.AddWithValue("@Name", brand.Name);
             command.Parameters.AddWithValue("@Comments", brand.Comments);
             command.Parameters.AddWithValue("@CreatedDate", brand.CreatedDate);
             command.Parameters.AddWithValue("@CreatedUser", brand.CreatedUser);
+            command.Parameters.AddWithValue("@ModifiedDate", brand.ModifiedDate);
+            command.Parameters.AddWithValue("@ModifiedUser", brand.ModifiedUser);
+
+            command.ExecuteNonQuery();
+        }
+
+        internal void Update(BrandModel brand)
+        {
+            using var command = new SqlCommand(DatabaseQueries.Brand.UpdateBrand, _connection);
+            command.Parameters.AddWithValue("@Id", brand.Id);
+            command.Parameters.AddWithValue("@Name", brand.Name);
+            command.Parameters.AddWithValue("@Comments", brand.Comments);
             command.Parameters.AddWithValue("@ModifiedDate", brand.ModifiedDate);
             command.Parameters.AddWithValue("@ModifiedUser", brand.ModifiedUser);
 

@@ -127,19 +127,18 @@ namespace CakePrizeView
         private void ConfigureMenuPermissions()
         {
             // Ingredients management - PastryChef and Admin only
-            ingredientesToolStripMenuItem.Visible = UserSession.CanManageIngredients();
+            tsBtnIngredients.Visible = UserSession.CanManageIngredients();
 
             // Brand management - PastryChef and Admin only
-            marcasToolStripMenuItem.Visible = UserSession.CanManageBrands();
+            tsBtnBrands.Visible = UserSession.CanManageBrands();
 
             // Product management - PastryChef and Admin only
-            unidadToolStripMenuItem.Visible = UserSession.CanManageProducts();
-            armarCombosToolStripMenuItem.Visible = UserSession.CanManageProducts();
-            combosEspecialesToolStripMenuItem.Visible = UserSession.CanManageProducts();
-            promocionesToolStripMenuItem.Visible = UserSession.CanManageProducts();
+            tsDdnProductItem.Visible = UserSession.CanManageProducts();
+            tsDdnComboItem.Visible = UserSession.CanManageProducts();
+            tsDdnPromosItem.Visible = UserSession.CanManageProducts();
 
             // Calculator - Available to all users
-            calculadoraToolStripMenuItem.Visible = true;
+            tsBtnCalculator.Visible = true;
 
             // User Management - Admin only
             // Note: You'll need to add a menu item for user management and configure it here
@@ -255,11 +254,39 @@ namespace CakePrizeView
             }
         }
 
-        private void btnCalculatorFrm_Click(object sender, EventArgs e)
+        private void tsBtnCalculator_Click(object sender, EventArgs e)
         {
             Hide();
             CalculatorForm calculatorForm = new CalculatorForm(FindForm() ?? new ErrorNotFoundForm(), null);
             calculatorForm.Show();
+        }
+
+        private void tsBtnBrands_Click(object sender, EventArgs e)
+        {
+            Hide();
+            BrandForm brandForm = new BrandForm(FindForm() ?? new ErrorNotFoundForm(), null);
+            brandForm.Show();
+        }
+
+        private void tsDdnProductTypeItem_Click(object sender, EventArgs e)
+        {
+            Hide();
+            ProductTypeForm productTypeForm = new ProductTypeForm(FindForm() ?? new ErrorNotFoundForm(), null);
+            productTypeForm.Show();
+        }
+
+        private void tsDdnProductItem_Click(object sender, EventArgs e)
+        {
+            Hide();
+            ProductForm productForm = new ProductForm(FindForm() ?? new ErrorNotFoundForm(), null);
+            productForm.Show();
+        }
+
+        private void tsDdnComboItem_Click(object sender, EventArgs e)
+        {
+            Hide();
+            ProductSpecialComboForm productSpecialComboForm = new ProductSpecialComboForm(FindForm() ?? new ErrorNotFoundForm(), null);
+            productSpecialComboForm.Show();
         }
     }
 }

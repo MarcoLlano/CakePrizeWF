@@ -32,11 +32,14 @@ namespace CakePrizeDB.Constants
 
         public static class Brand
         {
-            public static string GetAll => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[brand]";
-            public static string GetById => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[brand] WHERE id = @BrandId";
-            public static string Insert => $"INSERT INTO [{GetCurrentDatabaseName()}].[dbo].[brand] " +
+            public static string GetAllBrands => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[brand]";
+            public static string GetBrandById => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[brand] WHERE id = @BrandId";
+            public static string InsertBrand => $"INSERT INTO [{GetCurrentDatabaseName()}].[dbo].[brand] " +
                 "(id, name, comments, created_date, created_user, modified_date, modified_user) VALUES " +
                 "(@Id, @Name, @Comments, @CreatedDate, @CreatedUser, @ModifiedDate, @ModifiedUser)";
+
+            public static string UpdateBrand => $"UPDATE [{GetCurrentDatabaseName()}].[dbo].[brand] SET name = @Name," +
+                $" comments = @Comments, modified_date = @ModifiedDate, modified_user = @ModifiedUser WHERE id = @Id";
         }
 
         public static class ProductType

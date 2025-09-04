@@ -1,4 +1,9 @@
 ﻿
+using CakePrizeDB.Models;
+using System.Collections;
+using System.Collections.Generic;
+using System;
+
 namespace CakePrizeView.Utils
 {
     public static class FormUtils
@@ -108,6 +113,21 @@ namespace CakePrizeView.Utils
                     StoreControlBounds(child, initialControlBounds);
                 }
             }
+        }
+
+        internal static ArrayList SortItems<TItem>(IEnumerable<TItem> items, Func<TItem, string> keySelector)
+        {
+            ArrayList sortedValues = new ArrayList();
+            foreach (var item in items)
+            {
+                string value = keySelector(item);
+                if (!string.IsNullOrEmpty(value))
+                {
+                    sortedValues.Add(value);
+                }
+            }
+            sortedValues.Sort();
+            return sortedValues;
         }
     }
 }
