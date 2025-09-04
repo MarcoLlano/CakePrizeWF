@@ -1,7 +1,8 @@
-using CakePrizeDB.Services;
-using Microsoft.Data.SqlClient;
-using CakePrizeView.Utils;
 using CakePrizeCore.libs.DBUtils;
+using CakePrizeDB.Models;
+using CakePrizeDB.Services;
+using CakePrizeView.Utils;
+using Microsoft.Data.SqlClient;
 
 namespace CakePrizeView.Forms.ingredients
 {
@@ -9,26 +10,29 @@ namespace CakePrizeView.Forms.ingredients
     {
         private Form previousForm;
         private BrandService brandService;
-        
+        private BrandModel brandUpdate;
+
         // Store initial form size for relative positioning
         private Size initialFormSize;
         private Dictionary<Control, Rectangle> initialControlBounds;
 
         public BrandForm(Form previousForm, SqlConnection? sqlConnection = null)
         {
+            brandService = new BrandService();
+            brandUpdate = new BrandModel();
             initialControlBounds = new Dictionary<Control, Rectangle>();
             InitializeComponent();
             this.previousForm = previousForm;
-            
+
             // Initialize services after InitializeComponent to ensure proper connection state
             InitializeServices();
-            
+
             // Add resize event handler
             Resize += BrandForm_Resize;
-            
+
             // Store initial positions for relative positioning
             StoreInitialPositions();
-            
+
             // Set up auto-maximize
             FormMaximizeHelper.SetupAutoMaximize(this);
         }
@@ -42,14 +46,23 @@ namespace CakePrizeView.Forms.ingredients
             {
                 // Create fresh connections for each service to ensure they're open and available
                 var connection = DatabaseConnectionManager.OpenConnection();
-                
+
                 brandService = new BrandService();
             }
             catch (Exception ex)
             {
                 // If we can't create services, show error but don't crash the form
-                MessageBox.Show($"Failed to initialize database services: {ex.Message}", "Initialization Error", 
+                MessageBox.Show($"Failed to initialize database services: {ex.Message}", "Initialization Error",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void GetAllBrands(object sender, EventArgs e)
+        {
+            TSCmbBrandList.Items.Clear();
+            foreach (var item in brandService.GetAllBrands())
+            {
+                TSCmbBrandList.Items.Add($"{item.Name}");
             }
         }
 
@@ -58,6 +71,32 @@ namespace CakePrizeView.Forms.ingredients
             GetAllBrands(sender, e);
         }
 
+        private void TSCmbBrandList_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (TSCmbBrandList.Text != string.Empty)
+            {
+                btnClearBrandTexts.Hide();
+                btnSaveBrand.Hide();
+                btnEditBrand.Visible = true;
+
+                brandUpdate = brandService.GetAllBrands()
+                        .Where(brandName => brandName != null && brandName.Name == TSCmbBrandList.Text)
+                        .Select(brand => brand)
+                        .First();
+
+                ClearFields();
+
+                txtBrandName.Text = brandUpdate.Name;
+                richTBBrandComments.Text = brandUpdate.Comments;
+            }
+        }
+
+        private void ClearFields()
+        {
+            txtBrandName.Text = string.Empty;
+            richTBBrandComments.Text = string.Empty;
+            TSCmbBrandList.Text = string.Empty;
+        }
         private void btnBackIngredientForm_Click(object sender, EventArgs e)
         {
             Close();
@@ -79,18 +118,18 @@ namespace CakePrizeView.Forms.ingredients
             lblSaveStatus.Text = $"La marca {temp} se registro correctamente!";
         }
 
-        private void GetAllBrands(object sender, EventArgs e)
+        private void btnEditBrand_Click(object sender, EventArgs e)
         {
-            TSCmbBrandList.Items.Clear();
-            foreach (var item in brandService.GetAllBrands())
-            {
-                TSCmbBrandList.Items.Add($"{item.Name}");
-            }
+            string temp = txtBrandName.Text;
+            DateTime brandModifiedDate = DateTime.Now;
+            var brand = brandService.UpdateBrand(brandUpdate.Id, txtBrandName.Text, richTBBrandComments.Text, "Marco Llano", brandModifiedDate);
+            ClearFields();
+            lblSaveStatus.Text = $"La marca {temp} se actualizo correctamente!";
         }
 
         private void ClearSaveStatusLabel(object sender, EventArgs e)
         {
-            lblSaveStatus.Text = string.Empty; 
+            lblSaveStatus.Text = string.Empty;
         }
 
         /// <summary>
@@ -100,7 +139,7 @@ namespace CakePrizeView.Forms.ingredients
         {
             initialFormSize = this.Size;
             initialControlBounds = new Dictionary<Control, Rectangle>();
-            
+
             // Store initial bounds for all controls that need responsive positioning
             StoreControlBounds(panel1);
             StoreControlBounds(LblIngredientTitle);
@@ -143,7 +182,7 @@ namespace CakePrizeView.Forms.ingredients
             AdjustControlLayout(richTBBrandComments, scaleX, scaleY);
             AdjustControlLayout(btnSaveBrand, scaleX, scaleY);
             AdjustControlLayout(btnClearBrandTexts, scaleX, scaleY);
-            
+
             // Ensure minimum spacing between controls
             EnsureMinimumSpacing();
         }
@@ -162,6 +201,18 @@ namespace CakePrizeView.Forms.ingredients
         private void EnsureMinimumSpacing()
         {
             FormUtils.EnsureMinimumSpacing(btnBack, btnClose, btnSaveBrand, btnClearBrandTexts);
+        }
+
+        private void btnCancelEdit_Click(object sender, EventArgs e)
+        {
+            TSCmbBrandList.Text = string.Empty;
+            ClearFields();
+
+        }
+
+        private void btnClearBrandTexts_Click(object sender, EventArgs e)
+        {
+            ClearFields();
         }
     }
 }

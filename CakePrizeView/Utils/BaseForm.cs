@@ -1,5 +1,6 @@
 using CakePrizeCore.libs.DBUtils;
 using Microsoft.Data.SqlClient;
+using System.Data.Common;
 
 namespace CakePrizeView.Utils
 {
@@ -10,6 +11,19 @@ namespace CakePrizeView.Utils
     public class BaseForm : Form
     {
         protected SqlConnection? _connection;
+
+
+        /// <summary>
+        /// Properly disposes of the database connection when the form is closed
+        /// </summary>
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _connection?.Dispose();
+            }
+            base.Dispose(disposing);
+        }
 
         /// <summary>
         /// Gets or creates a database connection using the current environment configuration
@@ -56,16 +70,6 @@ namespace CakePrizeView.Utils
             _connection = null; // Will be recreated on next access
         }
 
-        /// <summary>
-        /// Properly disposes of the database connection when the form is closed
-        /// </summary>
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                _connection?.Dispose();
-            }
-            base.Dispose(disposing);
-        }
+        
     }
 }
