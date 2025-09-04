@@ -152,7 +152,7 @@ namespace CakePrizeView.Forms
             initialControlBounds = new Dictionary<Control, Rectangle>();
             
             // Store initial bounds for all controls that need responsive positioning
-            StoreControlBounds(panel1);
+            StoreControlBounds(pnlLoginForm);
             StoreControlBounds(LblLoginFormTitle);
             StoreControlBounds(LblUserLabel);
             StoreControlBounds(LblPasswordLabel);
@@ -193,7 +193,7 @@ namespace CakePrizeView.Forms
             float scaleY = (float)this.Height / initialFormSize.Height;
 
             // Adjust control positions and sizes
-            AdjustControlLayout(panel1, scaleX, scaleY);
+            AdjustControlLayout(pnlLoginForm, scaleX, scaleY);
             AdjustControlLayout(LblLoginFormTitle, scaleX, scaleY);
             AdjustControlLayout(LblUserLabel, scaleX, scaleY);
             AdjustControlLayout(LblPasswordLabel, scaleX, scaleY);

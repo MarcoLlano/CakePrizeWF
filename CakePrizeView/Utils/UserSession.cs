@@ -52,7 +52,7 @@ namespace CakePrizeView.Utils
         /// <summary>
         /// Gets the current user's full name
         /// </summary>
-        public static string GetCurrentUserName()
+        public static string GetCurrentUserFullName()
         {
             if (_currentUser == null)
                 return "Usuario";

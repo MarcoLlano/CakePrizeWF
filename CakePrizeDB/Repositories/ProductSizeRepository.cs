@@ -1,6 +1,7 @@
 ﻿using CakePrizeDB.Constants;
 using CakePrizeDB.Models;
 using Microsoft.Data.SqlClient;
+using System.Data;
 
 namespace CakePrizeDB.Repositories
 {
@@ -24,7 +25,7 @@ namespace CakePrizeDB.Repositories
                 {
                     Id = reader.GetGuid(0),
                     ProductId = reader.GetGuid(1),
-                    Portions = reader.GetString(2),
+                    Portions = reader.GetInt32(2),
                     Size = reader.GetString(3),
                     Comments = reader.GetString(4)
                 });
@@ -45,7 +46,7 @@ namespace CakePrizeDB.Repositories
                 {
                     Id = reader.GetGuid(0),
                     ProductId = reader.GetGuid(1),
-                    Portions = reader.GetString(2),
+                    Portions = reader.GetInt32(2),
                     Size = reader.GetString(3),
                     Comments = reader.GetString(4)
                 };

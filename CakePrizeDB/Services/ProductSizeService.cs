@@ -37,9 +37,8 @@ namespace CakePrizeDB.Services
         /// <summary>
         /// Creates a new product size
         /// </summary>
-        /// <param name="name">The name of the product size (e.g., "Mediano", "Grande")</param>
         /// <returns>The created product size with generated ID</returns>
-        public ProductSizeModel CreateProductSize(Guid productId, string portions, string size, string comments, string createdUser, string modifiedUser)
+        public ProductSizeModel CreateProductSize(Guid productId, int portions, string size, string comments, string createdUser, string modifiedUser)
         {
             var productSize = new ProductSizeModel
             {

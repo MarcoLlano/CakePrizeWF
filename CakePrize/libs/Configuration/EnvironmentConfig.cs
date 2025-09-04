@@ -14,7 +14,7 @@ namespace CakePrizeCore.libs.Configuration
         public enum Environment
         {
             Development,
-            Testing,
+            QA,
             Staging,
             Production
         }
@@ -93,11 +93,11 @@ namespace CakePrizeCore.libs.Configuration
         {
             return CurrentEnvironment switch
             {
-                Environment.Development => "CakePrize",
-                Environment.Testing => "CakePrizeTesting",
-                Environment.Staging => "CakePrizeStaging",
-                Environment.Production => "CakePrizeProduction",
-                _ => "CakePrize"
+                Environment.Development => "Development",
+                Environment.QA => "QA",
+                Environment.Staging => "Staging",
+                Environment.Production => "Production",
+                _ => "Development"
             };
         }
 
@@ -110,10 +110,10 @@ namespace CakePrizeCore.libs.Configuration
             return CurrentEnvironment switch
             {
                 Environment.Development => "CakePrizeDev",
-                Environment.Testing => "CakePrizeTesting",
+                Environment.QA => "CakePrizeTesting",
                 Environment.Staging => "CakePrizeStaging",
                 Environment.Production => "CakePrize",
-                _ => "CakePrize"
+                _ => "Development"
             };
         }
 
@@ -125,7 +125,7 @@ namespace CakePrizeCore.libs.Configuration
         /// <summary>
         /// Checks if the current environment is testing
         /// </summary>
-        public static bool IsTesting => CurrentEnvironment == Environment.Testing;
+        public static bool IsTesting => CurrentEnvironment == Environment.QA;
 
         /// <summary>
         /// Checks if the current environment is staging

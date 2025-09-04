@@ -123,7 +123,6 @@ namespace CakePrizeView.Forms.ingredients
             if (ValidateFields())
             {
                 string selectedPrice = chkbDefaultRetail.CheckState == 0 ? "Wholesale" : "Retail";
-                string createdModifiedUser = "Marco Llano";
 
                 // Handle ingredientBrandId - set to null if no brand is selected or brand doesn't exist
                 Guid? ingredientBrandId = null;
@@ -146,8 +145,8 @@ namespace CakePrizeView.Forms.ingredients
                     selectedPrice,
                     int.Parse(txtPackQty.Text),
                     richTBIngredientComments.Text,
-                    createdModifiedUser,
-                    createdModifiedUser);
+                    UserSession.GetCurrentUsername(),
+                    UserSession.GetCurrentUsername());
             }
 
         }
