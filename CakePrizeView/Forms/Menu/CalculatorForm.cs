@@ -316,7 +316,7 @@ namespace CakePrizeView
                 TSCmbProductList.Items.Clear();
                 var products = productService.GetAllProducts();
                 
-                foreach (var item in FormUtils.SortProducts(products))
+                foreach (var item in FormUtils.SortItems(products, p => p.Name))
                 {
                     TSCmbProductList.Items.Add(item);
                 }

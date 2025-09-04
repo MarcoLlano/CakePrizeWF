@@ -3,6 +3,7 @@ using CakePrizeDB.Models;
 using CakePrizeDB.Services;
 using CakePrizeView.Utils;
 using Microsoft.Data.SqlClient;
+using System.Timers;
 
 namespace CakePrizeView.Forms.ingredients
 {
@@ -11,6 +12,7 @@ namespace CakePrizeView.Forms.ingredients
         private Form previousForm;
         private BrandService brandService;
         private BrandModel brandUpdate;
+        System.Timers.Timer aTimer;
 
         // Store initial form size for relative positioning
         private Size initialFormSize;
@@ -18,6 +20,7 @@ namespace CakePrizeView.Forms.ingredients
 
         public BrandForm(Form previousForm, SqlConnection? sqlConnection = null)
         {
+            aTimer = new System.Timers.Timer();
             brandService = new BrandService();
             brandUpdate = new BrandModel();
             initialControlBounds = new Dictionary<Control, Rectangle>();
@@ -60,9 +63,9 @@ namespace CakePrizeView.Forms.ingredients
         private void GetAllBrands(object sender, EventArgs e)
         {
             TSCmbBrandList.Items.Clear();
-            foreach (var item in brandService.GetAllBrands())
+            foreach (var item in FormUtils.SortItems(brandService.GetAllBrands(), b => b.Name))
             {
-                TSCmbBrandList.Items.Add($"{item.Name}");
+                TSCmbBrandList.Items.Add($"{item}");
             }
         }
 
@@ -78,13 +81,12 @@ namespace CakePrizeView.Forms.ingredients
                 btnClearBrandTexts.Hide();
                 btnSaveBrand.Hide();
                 btnEditBrand.Visible = true;
+                btnCancelEditBrand.Visible = true;
 
                 brandUpdate = brandService.GetAllBrands()
                         .Where(brandName => brandName != null && brandName.Name == TSCmbBrandList.Text)
                         .Select(brand => brand)
                         .First();
-
-                ClearFields();
 
                 txtBrandName.Text = brandUpdate.Name;
                 richTBBrandComments.Text = brandUpdate.Comments;
@@ -95,7 +97,10 @@ namespace CakePrizeView.Forms.ingredients
         {
             txtBrandName.Text = string.Empty;
             richTBBrandComments.Text = string.Empty;
-            TSCmbBrandList.Text = string.Empty;
+            btnCancelEditBrand.Visible = false;
+            btnEditBrand.Visible = false;
+            btnSaveBrand.Visible = true;
+            btnClearBrandTexts.Visible = true;
         }
         private void btnBackIngredientForm_Click(object sender, EventArgs e)
         {
@@ -111,20 +116,23 @@ namespace CakePrizeView.Forms.ingredients
 
         private void btnSaveBrand_Click(object sender, EventArgs e)
         {
-            string temp = txtBrandName.Text;
-            var brand = brandService.CreateBrand(txtBrandName.Text, richTBBrandComments.Text, "Marco Llano", "Marco Llano");
-            txtBrandName.Text = string.Empty;
-            richTBBrandComments.Text = string.Empty;
-            lblSaveStatus.Text = $"La marca {temp} se registro correctamente!";
+            string newBrandName = txtBrandName.Text;
+            var brand = brandService.CreateBrand(newBrandName, richTBBrandComments.Text, "Marco Llano", "Marco Llano");
+            GetAllBrands(sender, e);
+            TSCmbBrandList.Text = newBrandName;
+            ClearFields();
+            lblSaveStatus.Text = $"La marca {brand} se registró correctamente!";
         }
 
         private void btnEditBrand_Click(object sender, EventArgs e)
         {
-            string temp = txtBrandName.Text;
+            string updatedName = txtBrandName.Text;
             DateTime brandModifiedDate = DateTime.Now;
             var brand = brandService.UpdateBrand(brandUpdate.Id, txtBrandName.Text, richTBBrandComments.Text, "Marco Llano", brandModifiedDate);
+            lblSaveStatus.Text = $"La marca {brand.Name} se actualizó correctamente!";
+            GetAllBrands(sender, e);
+            TSCmbBrandList.Text = updatedName;
             ClearFields();
-            lblSaveStatus.Text = $"La marca {temp} se actualizo correctamente!";
         }
 
         private void ClearSaveStatusLabel(object sender, EventArgs e)
@@ -149,7 +157,10 @@ namespace CakePrizeView.Forms.ingredients
             StoreControlBounds(btnSaveBrand);
             StoreControlBounds(lblIngredientName);
             StoreControlBounds(txtBrandName);
+            StoreControlBounds(lblSaveStatus);
             StoreControlBounds(btnClearBrandTexts);
+            StoreControlBounds(btnEditBrand);
+            StoreControlBounds(btnCancelEditBrand);
         }
 
         /// <summary>
@@ -179,9 +190,12 @@ namespace CakePrizeView.Forms.ingredients
             AdjustControlLayout(btnBack, scaleX, scaleY);
             AdjustControlLayout(lblIngredientName, scaleX, scaleY);
             AdjustControlLayout(txtBrandName, scaleX, scaleY);
+            AdjustControlLayout(lblSaveStatus, scaleX, scaleY);
             AdjustControlLayout(richTBBrandComments, scaleX, scaleY);
             AdjustControlLayout(btnSaveBrand, scaleX, scaleY);
             AdjustControlLayout(btnClearBrandTexts, scaleX, scaleY);
+            AdjustControlLayout(btnEditBrand, scaleX, scaleY);
+            AdjustControlLayout(btnCancelEditBrand, scaleX, scaleY);
 
             // Ensure minimum spacing between controls
             EnsureMinimumSpacing();
@@ -203,16 +217,10 @@ namespace CakePrizeView.Forms.ingredients
             FormUtils.EnsureMinimumSpacing(btnBack, btnClose, btnSaveBrand, btnClearBrandTexts);
         }
 
-        private void btnCancelEdit_Click(object sender, EventArgs e)
-        {
-            TSCmbBrandList.Text = string.Empty;
-            ClearFields();
-
-        }
-
-        private void btnClearBrandTexts_Click(object sender, EventArgs e)
+        private void btnCancelEditAdd_Click(object sender, EventArgs e)
         {
             ClearFields();
+
         }
     }
 }

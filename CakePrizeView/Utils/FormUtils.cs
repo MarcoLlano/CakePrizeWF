@@ -1,6 +1,8 @@
 ﻿
 using CakePrizeDB.Models;
 using System.Collections;
+using System.Collections.Generic;
+using System;
 
 namespace CakePrizeView.Utils
 {
@@ -113,15 +115,19 @@ namespace CakePrizeView.Utils
             }
         }
 
-        internal static ArrayList SortProducts(List<ProductModel> products)
+        internal static ArrayList SortItems<TItem>(IEnumerable<TItem> items, Func<TItem, string> keySelector)
         {
-            ArrayList al = new ArrayList();
-            foreach (var item in products)
+            ArrayList sortedValues = new ArrayList();
+            foreach (var item in items)
             {
-                al.Add(item.Name);
+                string value = keySelector(item);
+                if (!string.IsNullOrEmpty(value))
+                {
+                    sortedValues.Add(value);
+                }
             }
-            al.Sort();
-            return al;
+            sortedValues.Sort();
+            return sortedValues;
         }
     }
 }
