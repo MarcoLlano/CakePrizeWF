@@ -552,6 +552,30 @@ namespace CakePrizeView
             }
         }
 
+        /// <summary>
+        /// Updates DataGridView column widths proportionally
+        /// </summary>
+        private void UpdateDataGridViewColumns()
+        {
+            //TODO: tryo to move this to utils class and update in all forms
+            if (gvIngredientsInfo != null && gvIngredientsInfo.Columns.Count > 0)
+            {
+                int totalWidth = gvIngredientsInfo.Width - 20; // Account for scrollbar
+
+                // Set proportional widths (60% for ingredient, 20% for quantity and 20% for Brand)
+                if (gvIngredientsInfo.Columns.Count >= 2)
+                {
+                    gvIngredientsInfo.Columns[0].Width = (int)(totalWidth * 0.2); // Ingredient column
+                    gvIngredientsInfo.Columns[1].Width = (int)(totalWidth * 0.2); // Quantity column
+                    gvIngredientsInfo.Columns[2].Width = (int)(totalWidth * 0.2); // Brand column
+                    gvIngredientsInfo.Columns[3].Width = (int)(totalWidth * 0.1); // Brand column
+                    gvIngredientsInfo.Columns[4].Width = (int)(totalWidth * 0.1); // Brand column
+                    gvIngredientsInfo.Columns[5].Width = (int)(totalWidth * 0.1); // Brand column
+                    gvIngredientsInfo.Columns[6].Width = (int)(totalWidth * 0.1); // Brand column
+                }
+            }
+        }
+
         private void btnBack_Click(object sender, EventArgs e)
         {
             Close();
@@ -629,6 +653,7 @@ namespace CakePrizeView
 
             // Ensure minimum spacing between controls
             EnsureMinimumSpacing();
+            UpdateDataGridViewColumns();
         }
 
         /// <summary>

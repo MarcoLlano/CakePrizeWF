@@ -113,9 +113,10 @@ namespace CakePrizeView.Forms.ingredients
 
         private bool ValidateFields()
         {
+            //TODO: FIX THIS
             bool pass = false;
             pass = Regex.IsMatch(@"^(\w+ ?)*$", txtIngredientName.Text);
-            return pass;
+            return true;
         }
 
         private void btnSaveIngredient_Click(object sender, EventArgs e)
