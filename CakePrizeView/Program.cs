@@ -1,7 +1,7 @@
+using CakePrizeCore.libs.DBUtils;
 using CakePrizeDB.Services;
 using CakePrizeView.Forms;
-using CakePrizeCore.libs.DBUtils;
-using Microsoft.Data.SqlClient;
+using CakePrizeView.Utils;
 
 namespace CakePrizeView
 {
@@ -41,7 +41,7 @@ namespace CakePrizeView
                 try
                 {
                     var logsService = new LogsService();
-                    logsService.CreateLog(errorMessage, "Error", "Marco Llano");
+                    logsService.CreateLog(errorMessage, "Error", UserSession.GetCurrentUsername());
                 }
                 catch
                 {

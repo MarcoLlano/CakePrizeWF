@@ -153,7 +153,7 @@ namespace CakePrizeView
         /// </summary>
         private void UpdateFormTitle()
         {
-            var userName = UserSession.GetCurrentUserName();
+            var userName = UserSession.GetCurrentUserFullName();
             var userRole = UserSession.GetRoleDisplayName(UserSession.GetCurrentUserRole());
             this.Text = $"CakePrize - {userName} ({userRole})";
         }
@@ -287,6 +287,13 @@ namespace CakePrizeView
             Hide();
             ProductSpecialComboForm productSpecialComboForm = new ProductSpecialComboForm(FindForm() ?? new ErrorNotFoundForm(), null);
             productSpecialComboForm.Show();
+        }
+
+        private void tsBtnIngredients_Click(object sender, EventArgs e)
+        {
+            Hide();
+            IngredientForm ingredientForm = new IngredientForm(FindForm() ?? new ErrorNotFoundForm(), null);
+            ingredientForm.Show();
         }
     }
 }

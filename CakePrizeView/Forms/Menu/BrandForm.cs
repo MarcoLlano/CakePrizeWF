@@ -12,7 +12,6 @@ namespace CakePrizeView.Forms.ingredients
         private Form previousForm;
         private BrandService brandService;
         private BrandModel brandUpdate;
-        System.Timers.Timer aTimer;
 
         // Store initial form size for relative positioning
         private Size initialFormSize;
@@ -20,7 +19,6 @@ namespace CakePrizeView.Forms.ingredients
 
         public BrandForm(Form previousForm, SqlConnection? sqlConnection = null)
         {
-            aTimer = new System.Timers.Timer();
             brandService = new BrandService();
             brandUpdate = new BrandModel();
             initialControlBounds = new Dictionary<Control, Rectangle>();
@@ -117,18 +115,18 @@ namespace CakePrizeView.Forms.ingredients
         private void btnSaveBrand_Click(object sender, EventArgs e)
         {
             string newBrandName = txtBrandName.Text;
-            var brand = brandService.CreateBrand(newBrandName, richTBBrandComments.Text, "Marco Llano", "Marco Llano");
+            var brand = brandService.CreateBrand(newBrandName, richTBBrandComments.Text, UserSession.GetCurrentUsername(), UserSession.GetCurrentUsername());
             GetAllBrands(sender, e);
             TSCmbBrandList.Text = newBrandName;
             ClearFields();
-            lblSaveStatus.Text = $"La marca {brand} se registró correctamente!";
+            lblSaveStatus.Text = $"La marca {brand.Name} se registró correctamente!";
         }
 
         private void btnEditBrand_Click(object sender, EventArgs e)
         {
             string updatedName = txtBrandName.Text;
             DateTime brandModifiedDate = DateTime.Now;
-            var brand = brandService.UpdateBrand(brandUpdate.Id, txtBrandName.Text, richTBBrandComments.Text, "Marco Llano", brandModifiedDate);
+            var brand = brandService.UpdateBrand(brandUpdate.Id, txtBrandName.Text, richTBBrandComments.Text, UserSession.GetCurrentUsername(), brandModifiedDate);
             lblSaveStatus.Text = $"La marca {brand.Name} se actualizó correctamente!";
             GetAllBrands(sender, e);
             TSCmbBrandList.Text = updatedName;

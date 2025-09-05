@@ -105,11 +105,11 @@ namespace CakePrizeCore.libs.DBUtils
         {
             return environment switch
             {
-                EnvironmentConfig.Environment.Development => "CakePrize",
-                EnvironmentConfig.Environment.Testing => "CakePrizeTesting",
-                EnvironmentConfig.Environment.Staging => "CakePrizeStaging",
-                EnvironmentConfig.Environment.Production => "CakePrizeProduction",
-                _ => "CakePrize"
+                EnvironmentConfig.Environment.Development => "Development",
+                EnvironmentConfig.Environment.QA => "QA",
+                EnvironmentConfig.Environment.Staging => "Staging",
+                EnvironmentConfig.Environment.Production => "Production",
+                _ => "Development"
             };
         }
 

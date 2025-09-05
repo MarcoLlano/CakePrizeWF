@@ -325,13 +325,13 @@ namespace CakePrizeView.Forms.Menu.Products
                 if (newProd != null)
                 {
                     var newProdPhoto = LinkProductAndPhoto(sender, e, newProd.Id);
-                    LinkProductAndSize(sender, e, newProd.Id, "Marco Llano");
-                    LinkProductAndIngredient(sender, e, newProd.Id, "Marco Llano");
+                    LinkProductAndSize(sender, e, newProd.Id, UserSession.GetCurrentUsername());
+                    LinkProductAndIngredient(sender, e, newProd.Id, UserSession.GetCurrentUsername());
                     
                     if (newProdPhoto != null)
                     {
                         MessageBox.Show("Product saved successfully with photo!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        logsService.CreateLog($"Product {newProd.Name} saved successfully with photo!", "Info", "Marco Llano");
+                        logsService.CreateLog($"Product {newProd.Name} saved successfully with photo!", "Info", UserSession.GetCurrentUsername());
                     }
                     else
                     {
@@ -353,7 +353,7 @@ namespace CakePrizeView.Forms.Menu.Products
         {
             var productTypeId = Guid.Parse(prodTypeService.GetAllProductTypes().Where(d => d.Name == cbProductType.Text)
                 .Select(t => t.Id).First().ToString() ?? string.Empty);
-            return productService.CreateProduct(productTypeId, txtProductName.Text + " - " + cbProductSize.Text, "Marco Llano", "Marco Llano");
+            return productService.CreateProduct(productTypeId, txtProductName.Text + " - " + cbProductSize.Text, UserSession.GetCurrentUsername(), "Marco Llano");
         }
 
         /// <summary>
@@ -448,8 +448,8 @@ namespace CakePrizeView.Forms.Menu.Products
                     txtProductName.Text.Replace(" ", string.Empty),
                     fullFileName,
                     image,
-                    "Marco Llano",
-                    "Marco Llano");
+                    UserSession.GetCurrentUsername(),
+                    UserSession.GetCurrentUsername());
             }
             catch (Exception ex)
             {
@@ -462,7 +462,7 @@ namespace CakePrizeView.Forms.Menu.Products
         {
             return productSizeService.CreateProductSize(
                 productId,
-                txtProductPortionsPerPrep.Text,
+                int.Parse(txtProductPortionsPerPrep.Text),
                 cbProductSize.Text,
                 richTBProdComments.Text,
                 createUser,

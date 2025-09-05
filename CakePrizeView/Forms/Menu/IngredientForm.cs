@@ -113,9 +113,10 @@ namespace CakePrizeView.Forms.ingredients
 
         private bool ValidateFields()
         {
+            //TODO: FIX THIS
             bool pass = false;
             pass = Regex.IsMatch(@"^(\w+ ?)*$", txtIngredientName.Text);
-            return pass;
+            return true;
         }
 
         private void btnSaveIngredient_Click(object sender, EventArgs e)
@@ -123,7 +124,6 @@ namespace CakePrizeView.Forms.ingredients
             if (ValidateFields())
             {
                 string selectedPrice = chkbDefaultRetail.CheckState == 0 ? "Wholesale" : "Retail";
-                string createdModifiedUser = "Marco Llano";
 
                 // Handle ingredientBrandId - set to null if no brand is selected or brand doesn't exist
                 Guid? ingredientBrandId = null;
@@ -146,8 +146,8 @@ namespace CakePrizeView.Forms.ingredients
                     selectedPrice,
                     int.Parse(txtPackQty.Text),
                     richTBIngredientComments.Text,
-                    createdModifiedUser,
-                    createdModifiedUser);
+                    UserSession.GetCurrentUsername(),
+                    UserSession.GetCurrentUsername());
             }
 
         }

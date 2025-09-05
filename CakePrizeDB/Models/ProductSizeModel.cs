@@ -4,7 +4,7 @@
     {
         public Guid Id { get; set; }
         public Guid ProductId { get; set; }
-        public string Portions { get; set; } = string.Empty;
+        public int Portions { get; set; }
         public string Size { get; set; } = string.Empty;
         public string Comments { get; set; } = string.Empty;
         public DateTime CreatedDate { get; set; } = DateTime.Now;

@@ -21,11 +21,12 @@ namespace CakePrizeView
         private BrandService brandService;
         private UnitTypeService unitTypeService;
         private ProductPhotoService productPhotoService;
+        private ProductSizeService productSizeService;
         private LogsService logsService;
         private bool isUpdatingGrid;
         private bool isRepopulating;
         private Guid? lastSelectedProductId;
-
+        private int qtyPerPrep;
 
 
         // Store initial form size for relative positioning
@@ -35,7 +36,9 @@ namespace CakePrizeView
         public CalculatorForm(Form previousForm, SqlConnection? sqlConnection = null)
         {
             initialControlBounds = new Dictionary<Control, Rectangle>();
+            productSizeService = new ProductSizeService();
             brandService = new BrandService();
+            qtyPerPrep = 0;
 
             InitializeComponent();
             this.previousForm = previousForm;
@@ -116,17 +119,11 @@ namespace CakePrizeView
                 {
                     UpdatePrizeInGrid(e.RowIndex, ingredient);
                     var profitPercentage = !tsProfitPercentageCmb.Text.IsNullOrEmpty() ? tsProfitPercentageCmb.Text : "0";
-                    UpdateSalePriceLabelFromGrid(int.Parse(profitPercentage));
-                    UpdatePurchasePriceLabelFromGrid(0);
-                    UpdateProfitLabelFromGrid();
+                    lblSalePrice.Text = CalculateTotal(int.Parse(profitPercentage)).ToString();
+                    lblPurchasePrice.Text = CalculateTotal(0).ToString();
+                    UpdateProfitLabelFromGrid(int.Parse(profitPercentage));
                 }
             }
-        }
-
-        private void UpdateSalePriceLabelFromGrid(int percentProfit)
-        {
-            double total = CalculateTotal(percentProfit);
-            lblSalePrice.Text = total.ToString();
         }
 
         private void UpdatePurchasePriceLabelFromGrid(int percentProfit)
@@ -135,10 +132,10 @@ namespace CakePrizeView
             lblPurchasePrice.Text = total.ToString();
         }
 
-        private void UpdateProfitLabelFromGrid()
+        private void UpdateProfitLabelFromGrid(int profitPercent)
         {
-            double total = double.Parse(lblSalePrice.Text) - double.Parse(lblPurchasePrice.Text);
-            lblProfit.Text = total.ToString();
+            double totalProfit = CalculateTotal(profitPercent) - CalculateTotal(0);
+            lblProfit.Text = Math.Round(totalProfit, 2).ToString();
         }
 
         public double CalculateTotal(int percentProfit)
@@ -151,13 +148,27 @@ namespace CakePrizeView
                 var ingredient = row.Tag as IngredientModel;
                 if (ingredient == null) continue;
                 var prizeObj = row.Cells[4].Value;
-                bool useWholesale = Convert.ToBoolean(row.Cells[5].Value);
+                bool useWholesale = Convert.ToBoolean(row.Cells[6].Value);
                 var ingredientPriceObj = useWholesale ? ingredient.WholesalePrice : ingredient.RetailPrice;
                 double prizeVal = Convert.ToDouble(prizeObj);
                 double ingredientPriceVal = Convert.ToDouble(ingredientPriceObj);
                 total += PrizeCalculation.CalculateWeightVolCost(percentProfit, prizeVal, ingredientPriceVal, ingredient.PackQty);
             }
             return total;
+        }
+
+        private void UpdateTotalLabel(List<Guid> prodIngrId, int percentageProfit)
+        {
+            try
+            {
+                double saleTotal = CalculateTotal(percentageProfit);
+                lblSalePrice.Text = (saleTotal / qtyPerPrep).ToString();
+            }
+            catch (Exception ex)
+            {
+                logsService.CreateLog($"Failed to load product list: {ex.Message}", "Error", "System");
+                MessageBox.Show($"Failed to load products: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         /// <summary>
@@ -201,37 +212,6 @@ namespace CakePrizeView
             }
         }
 
-        private void UpdateTotalLabel(List<Guid> prodIngrId, int PercentageProfit)
-        {
-            try
-            {
-                double total = 0.0;
-                int rowIndex = 0;
-
-                foreach (var id in prodIngrId)
-                {
-                    var prizeObj = gvIngredientsInfo.Rows[rowIndex].Cells[4].Value;
-                    var dfltPrizeObj = gvIngredientsInfo.Rows[rowIndex].Cells[5].Value;
-                    var prodIng = productIngredientService.GetProductIngredientById(id);
-
-                    bool useWholesale = Convert.ToBoolean(dfltPrizeObj);
-                    var ingredientEntity = ingredientService.GetIngredientById(prodIng.IngredientId);
-                    var ingredientPriceObj = useWholesale ? ingredientEntity.WholesalePrice : ingredientEntity.RetailPrice;
-
-                    double prizeVal = Convert.ToDouble(prizeObj);
-                    double ingredientPriceVal = Convert.ToDouble(ingredientPriceObj);
-
-                    total += PrizeCalculation.CalculateWeightVolCost(PercentageProfit, prizeVal, ingredientPriceVal, ingredientEntity.PackQty);
-                    rowIndex++;
-                }
-                lblSalePrice.Text = total.ToString();
-            }
-            catch (Exception ex)
-            {
-                logsService.CreateLog($"Failed to load product list: {ex.Message}", "Error", "System");
-                MessageBox.Show($"Failed to load products: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
 
         private void UpdatePrizeInGrid(int rowIndex, IngredientModel ingredient)
         {
@@ -257,10 +237,14 @@ namespace CakePrizeView
                 {
                     int rowIndex = gvIngredientsInfo.Rows.Add();
                     var prodIngId = productIngredientService.GetProductIngredientById(id);
+                    qtyPerPrep = productSizeService.GetAllProductSizes()
+                        .Where(p => p.ProductId == prodIngId.ProductId)
+                        .Select(p => p.Portions).First();
                     var ingredient = ingredientService.GetIngredientById(prodIngId.IngredientId);
-                    var brand = ingredient.BrandId.HasValue ? brandService.GetBrandById((Guid)ingredient.BrandId).Name : string.Empty;
-                    var unitType = unitTypeService.GetUnitTypeById((Guid)ingredient.UnitTypeId);
+                    var brand = ingredient.BrandId.HasValue ? brandService.GetBrandById((Guid)ingredient.BrandId).Name :
+                        string.Empty;
 
+                    var unitType = unitTypeService.GetUnitTypeById((Guid)ingredient.UnitTypeId);
                     var qtyRetail = ingredient.RetailPrice;
                     var qtyWholesale = ingredient.WholesalePrice;
 
@@ -276,10 +260,11 @@ namespace CakePrizeView
                     gvIngredientsInfo.Rows[rowIndex].Cells[2].Value = prodIngId.IngredientQtyPerPrep;
                     //unidad
                     gvIngredientsInfo.Rows[rowIndex].Cells[3].Value = unitType.Acronym;
+                    gvIngredientsInfo.Rows[rowIndex].Cells[5].Value = Math.Round(prodIngId.IngredientQtyPerPrep / qtyPerPrep, 2);
                     //default precio
-                    gvIngredientsInfo.Rows[rowIndex].Cells[5].ReadOnly = false;
+                    gvIngredientsInfo.Rows[rowIndex].Cells[6].ReadOnly = false;
                     var defaultIsWholesale = ingredient.DefaultPrice == "Retail" ? false : true;
-                    gvIngredientsInfo.Rows[rowIndex].Cells[5].Value = defaultIsWholesale;
+                    gvIngredientsInfo.Rows[rowIndex].Cells[6].Value = defaultIsWholesale;
                     gvIngredientsInfo.CommitEdit(DataGridViewDataErrorContexts.Commit);
                     // store ingredient for later updates
                     gvIngredientsInfo.Rows[rowIndex].Tag = ingredient;
@@ -357,7 +342,7 @@ namespace CakePrizeView
                 logsService = null;
 
                 // Force environment to Testing and clear all caches
-                EnvironmentConfig.ForceEnvironment(EnvironmentConfig.Environment.Testing);
+                EnvironmentConfig.ForceEnvironment(EnvironmentConfig.Environment.QA);
                 DatabaseConnectionManager.ClearCache();
 
                 // Reinitialize all services with fresh connections
@@ -467,7 +452,7 @@ namespace CakePrizeView
             }
             catch (Exception ex)
             {
-                logsService.CreateLog(ex.Message, "Error", "Marco Llano");
+                logsService.CreateLog(ex.Message, "Error", UserSession.GetCurrentUsername());
                 throw;
             }
         }
@@ -502,11 +487,11 @@ namespace CakePrizeView
 
                 UpdateTotalLabel(prodIngredients, int.Parse(tsProfitPercentageCmb.Text));
                 UpdatePurchasePriceLabelFromGrid(0);
-                UpdateProfitLabelFromGrid();
+                UpdateProfitLabelFromGrid(int.Parse(tsProfitPercentageCmb.Text));
             }
             catch (Exception ex)
             {
-                logsService.CreateLog(ex.Message, "Error", "Marco Llano");
+                logsService.CreateLog(ex.Message, "Error", UserSession.GetCurrentUsername());
                 throw;
             }
         }
@@ -555,7 +540,7 @@ namespace CakePrizeView
                 LblFormTitle.Text = TSCmbProductList.Text;
                 LoadImage(this, EventArgs.Empty, productId);
                 UpdatePurchasePriceLabelFromGrid(0);
-                UpdateProfitLabelFromGrid();
+                UpdateProfitLabelFromGrid(int.Parse(tsProfitPercentageCmb.Text));
             }
             finally
             {
@@ -564,6 +549,30 @@ namespace CakePrizeView
                 gvIngredientsInfo.ResumeLayout();
                 isUpdatingGrid = false;
                 AttachGridEvents();
+            }
+        }
+
+        /// <summary>
+        /// Updates DataGridView column widths proportionally
+        /// </summary>
+        private void UpdateDataGridViewColumns()
+        {
+            //TODO: tryo to move this to utils class and update in all forms
+            if (gvIngredientsInfo != null && gvIngredientsInfo.Columns.Count > 0)
+            {
+                int totalWidth = gvIngredientsInfo.Width - 20; // Account for scrollbar
+
+                // Set proportional widths (60% for ingredient, 20% for quantity and 20% for Brand)
+                if (gvIngredientsInfo.Columns.Count >= 2)
+                {
+                    gvIngredientsInfo.Columns[0].Width = (int)(totalWidth * 0.2); // Ingredient column
+                    gvIngredientsInfo.Columns[1].Width = (int)(totalWidth * 0.2); // Quantity column
+                    gvIngredientsInfo.Columns[2].Width = (int)(totalWidth * 0.2); // Brand column
+                    gvIngredientsInfo.Columns[3].Width = (int)(totalWidth * 0.1); // Brand column
+                    gvIngredientsInfo.Columns[4].Width = (int)(totalWidth * 0.1); // Brand column
+                    gvIngredientsInfo.Columns[5].Width = (int)(totalWidth * 0.1); // Brand column
+                    gvIngredientsInfo.Columns[6].Width = (int)(totalWidth * 0.1); // Brand column
+                }
             }
         }
 
@@ -644,6 +653,7 @@ namespace CakePrizeView
 
             // Ensure minimum spacing between controls
             EnsureMinimumSpacing();
+            UpdateDataGridViewColumns();
         }
 
         /// <summary>

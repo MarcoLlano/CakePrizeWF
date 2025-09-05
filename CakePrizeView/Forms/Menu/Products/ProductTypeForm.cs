@@ -153,7 +153,7 @@ namespace CakePrizeView.Forms.Menu.Products
         private void btnSaveProdType_Click(object sender, EventArgs e)
         {
             string temp = txtProdTypeName.Text;
-            var brand = prodTypeService.CreateProductType(txtProdTypeName.Text, "Marco Llano", "Marco Llano");
+            var brand = prodTypeService.CreateProductType(txtProdTypeName.Text, UserSession.GetCurrentUsername(), UserSession.GetCurrentUsername());
             txtProdTypeName.Text = string.Empty;
             lblSaveProdTypeStatus.Text = $"El producto {temp} se registro correctamente!";
         }
