@@ -1,14 +1,11 @@
 using CakePrize.libs.utils;
 using CakePrizeCore.libs.Configuration;
 using CakePrizeCore.libs.DBUtils;
-using CakePrizeCore.libs.utils;
 using CakePrizeDB.Models;
 using CakePrizeDB.Services;
 using CakePrizeView.Utils;
 using Microsoft.Data.SqlClient;
 using Microsoft.IdentityModel.Tokens;
-using System.Collections;
-using static CakePrizeDB.Constants.DatabaseQueries;
 
 namespace CakePrizeView
 {
@@ -111,7 +108,7 @@ namespace CakePrizeView
                 return;
             }
 
-            if (e.ColumnIndex == 5)
+            if (e.ColumnIndex == 6)
             {
                 var row = gvIngredientsInfo.Rows[e.RowIndex];
                 var ingredient = row.Tag as IngredientModel;
@@ -148,11 +145,15 @@ namespace CakePrizeView
                 var ingredient = row.Tag as IngredientModel;
                 if (ingredient == null) continue;
                 var prizeObj = row.Cells[4].Value;
+                var qtyObj = row.Cells[2].Value;
                 bool useWholesale = Convert.ToBoolean(row.Cells[6].Value);
                 var ingredientPriceObj = useWholesale ? ingredient.WholesalePrice : ingredient.RetailPrice;
                 double prizeVal = Convert.ToDouble(prizeObj);
+                double qtyIng = Convert.ToDouble(qtyObj);
                 double ingredientPriceVal = Convert.ToDouble(ingredientPriceObj);
-                total += PrizeCalculation.CalculateWeightVolCost(percentProfit, prizeVal, ingredientPriceVal, ingredient.PackQty);
+                ProductSizeModel size = productSizeService.GetProductSizeByProductId(lastSelectedProductId);
+                //se esta enviando incorrectamente los valores a calculateweightvolcost
+                total += PrizeCalculation.CalculateWeightVolCost(percentProfit, qtyIng, prizeVal, size.Portions);
             }
             return total;
         }
@@ -161,8 +162,7 @@ namespace CakePrizeView
         {
             try
             {
-                double saleTotal = CalculateTotal(percentageProfit);
-                lblSalePrice.Text = (saleTotal / qtyPerPrep).ToString();
+                lblSalePrice.Text = CalculateTotal(percentageProfit).ToString();
             }
             catch (Exception ex)
             {
@@ -217,7 +217,7 @@ namespace CakePrizeView
         {
             var qtyRetail = ingredient.RetailPrice;
             var qtyWholesale = ingredient.WholesalePrice;
-            bool useWholesale = Convert.ToBoolean(gvIngredientsInfo.Rows[rowIndex].Cells[5].Value);
+            bool useWholesale = Convert.ToBoolean(gvIngredientsInfo.Rows[rowIndex].Cells[6].Value);
             try
             {
                 isUpdatingGrid = true;
@@ -407,10 +407,8 @@ namespace CakePrizeView
             try
             {
                 var photo = productPhotoService.GetProductPhotoByProductId(productId);
-                if (photo != null)
-                {
-                    imgProduct.Image = photo != null ? photo.Image : Properties.Resources.PhotoNotFound;
-                }
+                var fallback = (System.Drawing.Bitmap)CakePrizeView.Properties.Resources.ResourceManager.GetObject("PhotoNotFound");
+                imgProduct.Image = photo?.Image ?? fallback;
             }
             catch (Exception)
             {

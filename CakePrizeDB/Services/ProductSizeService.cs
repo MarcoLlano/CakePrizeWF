@@ -57,6 +57,11 @@ namespace CakePrizeDB.Services
             _repository.Insert(productSize);
             return productSize;
         }
+
+        public ProductSizeModel GetProductSizeByProductId(Guid? lastSelectedProductId)
+        {
+            return _repository.GetProductSizeByProductId(lastSelectedProductId);
+        }
     }
 }
 
