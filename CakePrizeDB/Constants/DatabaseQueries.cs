@@ -22,12 +22,19 @@ namespace CakePrizeDB.Constants
 
         public static class Ingredient
         {
-            public static string GetAll => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[ingredient]";
-            public static string GetById => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[ingredient] WHERE id = @IngredientId";
-            public static string Insert => $"INSERT INTO [{GetCurrentDatabaseName()}].[dbo].[ingredient] (id, name, unit_type_id, brand_id, " +
-                "retail_price_1k, wholesale_price_1k, default_selected_price, pack_qty, comments, created_date, created_user, modified_date," +
-                " modified_user) VALUES (@Id, @Name, @UnitTypeId, @BrandId, @RetailPrice1K, @WholesalePrice1K, @DefaultPrice, @PackQty" +
-                ", @Comments, @CreatedDate, @CreatedUser, @ModifiedDate, @ModifiedUser)";
+            internal static string UpdateIngredient = $"UPDATE [{GetCurrentDatabaseName()}].[dbo].[ingredient] SET name = @Name," +
+                $"unit_type_id = @UnitTypeId, brand_id = @BrandId, retail_price_1k = @RetailPrice1K, wholesale_price_1k = @WholesalePrice1K," +
+                $"default_selected_price = @DefaultPrice, pack_qty = @PackQty, comments = @Comments, modified_date = @ModifiedDate, " +
+                $"modified_user = @ModifiedUser WHERE id = @Id";
+
+            public static string GetAllIngredients => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[ingredient]";
+            public static string GetIngredientById => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[ingredient] " +
+                $"WHERE id = @IngredientId";
+            public static string InsertNewIngredient => $"INSERT INTO [{GetCurrentDatabaseName()}].[dbo].[ingredient] " +
+                $"(id, name, unit_type_id, brand_id, retail_price_1k, wholesale_price_1k, default_selected_price, pack_qty, " +
+                $"comments, created_date, created_user, modified_date, modified_user) VALUES (@Id, @Name, @UnitTypeId, @BrandId," +
+                $" @RetailPrice1K, @WholesalePrice1K, @DefaultPrice, @PackQty, @Comments, @CreatedDate, @CreatedUser, @ModifiedDate," +
+                $" @ModifiedUser)";
         }
 
         public static class Brand
@@ -82,6 +89,8 @@ namespace CakePrizeDB.Constants
 
         public static class ProductSize
         {
+            internal static string GetByProductId = $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[product_size] WHERE product_id = @ProductId";
+
             public static string GetAll => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[product_size]";
             public static string GetById => $"SELECT * FROM [{GetCurrentDatabaseName()}].[dbo].[product_size] WHERE id = @ProductSizeId";
             public static string Insert => $"INSERT INTO [{GetCurrentDatabaseName()}].[dbo].[product_size] " +

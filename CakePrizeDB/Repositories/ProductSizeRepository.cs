@@ -21,13 +21,19 @@ namespace CakePrizeDB.Repositories
 
             while (reader.Read())
             {
+                int idIdx = reader.GetOrdinal("id");
+                int productIdIdx = reader.GetOrdinal("product_id");
+                int portionsIdx = reader.GetOrdinal("product_portions");
+                int sizeIdx = reader.GetOrdinal("size");
+                int commentsIdx = reader.GetOrdinal("comments");
+
                 prodSize.Add(new ProductSizeModel
                 {
-                    Id = reader.GetGuid(0),
-                    ProductId = reader.GetGuid(1),
-                    Portions = reader.GetInt32(2),
-                    Size = reader.GetString(3),
-                    Comments = reader.GetString(4)
+                    Id = reader.GetGuid(idIdx),
+                    ProductId = reader.GetGuid(productIdIdx),
+                    Portions = ReadInt(reader, portionsIdx),
+                    Size = reader.GetString(sizeIdx),
+                    Comments = reader.GetString(commentsIdx)
                 });
             }
 
@@ -42,17 +48,38 @@ namespace CakePrizeDB.Repositories
             using var reader = command.ExecuteReader();
             if (reader.Read())
             {
+                int idIdx = reader.GetOrdinal("id");
+                int productIdIdx = reader.GetOrdinal("product_id");
+                int portionsIdx = reader.GetOrdinal("product_portions");
+                int sizeIdx = reader.GetOrdinal("size");
+                int commentsIdx = reader.GetOrdinal("comments");
+
                 return new ProductSizeModel
                 {
-                    Id = reader.GetGuid(0),
-                    ProductId = reader.GetGuid(1),
-                    Portions = reader.GetInt32(2),
-                    Size = reader.GetString(3),
-                    Comments = reader.GetString(4)
+                    Id = reader.GetGuid(idIdx),
+                    ProductId = reader.GetGuid(productIdIdx),
+                    Portions = ReadInt(reader, portionsIdx),
+                    Size = reader.GetString(sizeIdx),
+                    Comments = reader.GetString(commentsIdx)
                 };
             }
 
             return null;
+        }
+
+        private static int ReadInt(SqlDataReader reader, int ordinal)
+        {
+            if (reader.IsDBNull(ordinal))
+            {
+                return 0;
+            }
+            object val = reader.GetValue(ordinal);
+            if (val is int i) return i;
+            if (val is long l) return (int)l;
+            if (val is short s) return s;
+            if (val is byte b) return b;
+            if (val is string str && int.TryParse(str, out var parsed)) return parsed;
+            return Convert.ToInt32(val);
         }
 
         public void Insert(ProductSizeModel productSize)
@@ -69,6 +96,33 @@ namespace CakePrizeDB.Repositories
             command.Parameters.AddWithValue("@ModifiedUser", productSize.ModifiedUser);
 
             command.ExecuteNonQuery();
+        }
+
+        internal ProductSizeModel GetProductSizeByProductId(Guid? lastSelectedProductId)
+        {
+            using var command = new SqlCommand(DatabaseQueries.ProductSize.GetByProductId, _connection);
+            command.Parameters.AddWithValue("@ProductId", lastSelectedProductId);
+
+            using var reader = command.ExecuteReader();
+            if (reader.Read())
+            {
+                int idIdx = reader.GetOrdinal("id");
+                int productIdIdx = reader.GetOrdinal("product_id");
+                int portionsIdx = reader.GetOrdinal("product_portions");
+                int sizeIdx = reader.GetOrdinal("size");
+                int commentsIdx = reader.GetOrdinal("comments");
+
+                return new ProductSizeModel
+                {
+                    Id = reader.GetGuid(idIdx),
+                    ProductId = reader.GetGuid(productIdIdx),
+                    Portions = ReadInt(reader, portionsIdx),
+                    Size = reader.GetString(sizeIdx),
+                    Comments = reader.GetString(commentsIdx)
+                };
+            }
+
+            return null;
         }
     }
 }

@@ -148,7 +148,7 @@ namespace CakePrizeView.Forms.ingredients
 
             // Store initial bounds for all controls that need responsive positioning
             StoreControlBounds(panel1);
-            StoreControlBounds(LblIngredientTitle);
+            StoreControlBounds(LblBrandTitle);
             StoreControlBounds(btnClose);
             StoreControlBounds(btnBack);
             StoreControlBounds(richTBBrandComments);
@@ -183,7 +183,7 @@ namespace CakePrizeView.Forms.ingredients
 
             // Adjust control positions and sizes
             AdjustControlLayout(panel1, scaleX, scaleY);
-            AdjustControlLayout(LblIngredientTitle, scaleX, scaleY);
+            AdjustControlLayout(LblBrandTitle, scaleX, scaleY);
             AdjustControlLayout(btnClose, scaleX, scaleY);
             AdjustControlLayout(btnBack, scaleX, scaleY);
             AdjustControlLayout(lblIngredientName, scaleX, scaleY);
@@ -218,7 +218,6 @@ namespace CakePrizeView.Forms.ingredients
         private void btnCancelEditAdd_Click(object sender, EventArgs e)
         {
             ClearFields();
-
         }
     }
 }

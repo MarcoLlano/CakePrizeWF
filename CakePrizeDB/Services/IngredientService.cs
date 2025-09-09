@@ -1,6 +1,8 @@
+using CakePrizeCore.libs.DBUtils;
 using CakePrizeDB.Models;
 using CakePrizeDB.Repositories;
-using CakePrizeCore.libs.DBUtils;
+using System.Xml.Linq;
+using static CakePrizeDB.Constants.DatabaseQueries;
 
 namespace CakePrizeDB.Services
 {
@@ -66,6 +68,27 @@ namespace CakePrizeDB.Services
                 return ingredient;
             }
             throw new Exception("Not possible to add new ingredient, please review the payload");
+        }
+
+        public IngredientModel UpdateIngredient(Guid? ingId, string name, Guid unitTypeId, Guid? ingredientBrandId, float retailPrice, float wholesalePrice,
+            string selectedPrice, int packQty, string comments, string modifiedUser)
+        {
+            var ingredient = new IngredientModel
+            {
+                Id = ingId,
+                Name = name,
+                UnitTypeId = unitTypeId,
+                BrandId = ingredientBrandId,
+                RetailPrice = retailPrice,
+                WholesalePrice = wholesalePrice,
+                DefaultPrice = selectedPrice,
+                PackQty = packQty,
+                Comments = comments,
+                ModifiedDate = DateTime.Now,
+                ModifiedUser = modifiedUser
+            };
+            _repository.Update(ingredient);
+            return ingredient;
         }
     }
 }
