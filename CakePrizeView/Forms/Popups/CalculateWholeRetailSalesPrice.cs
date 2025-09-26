@@ -1,16 +1,5 @@
 ﻿using CakePrize.libs.utils;
 using CakePrizeDB.Services;
-using CakePrizeView.Forms.ingredients;
-using Microsoft.Data.SqlClient;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 
 namespace CakePrizeView.Forms.Popups
 {
@@ -34,14 +23,46 @@ namespace CakePrizeView.Forms.Popups
 
         private void cbCalcWholesaleUnit_SelectedIndexChanged(object sender, EventArgs e)
         {
-            double convertedWholesale = UnitConvertion.ConvertWeightToGram(double.Parse(txtCalcWholeSaleQty.Text), cbCalcWholesaleUnit.Text);
-            lblCalculatedWholesalePrice.Text = Math.Round(double.Parse(txtCalcWholeSalePrice.Text) / convertedWholesale * 1000, 2).ToString();
+            if (cbCalcWholesaleUnit.Text.Replace(" ", string.Empty) == "ud")
+            {
+                lblCalculatedWholesalePrice.Text = UnitConvertion.CalculateUnitPrice(float.Parse(txtCalcWholeSaleQty.Text), float.Parse(txtCalcWholeSalePrice.Text)).ToString();
+            }
+            else
+            {
+                double convertedWholesale = txtCalcWholeSalePrice.Text != string.Empty && txtCalcWholeSaleQty.Text != string.Empty ?
+                    UnitConvertion.ConvertWeightVol(double.Parse(txtCalcWholeSaleQty.Text), cbCalcWholesaleUnit.Text): -1;
+                if(convertedWholesale > 0)
+                {
+                    lblCalculatedWholesalePrice.Text = Math.Round(double.Parse(txtCalcWholeSalePrice.Text) / convertedWholesale * 1000, 2).ToString();
+                }
+                else
+                {
+                    lblCalcStatusMessage.ForeColor = Color.Red;
+                    lblCalcStatusMessage.Text = $"Datos invalidos, o la unidad de medida '{cbCalcWholesaleUnit.Text}' no es soportada, por favor use otra";
+                }
+            }
         }
 
         private void cbCalcRetailUnit_SelectedIndexChanged(object sender, EventArgs e)
         {
-            double convertedRetail = UnitConvertion.ConvertWeightToGram(double.Parse(txtCalcRetailSaleQty.Text), cbCalcRetailUnit.Text);
-            lblCalculatedRetailPrice.Text = Math.Round(double.Parse(txtCalcRetailSalePrice.Text) / convertedRetail * 1000, 2).ToString();
+            lblCalcStatusMessage.Text = string.Empty;
+            if (cbCalcWholesaleUnit.Text == "ud")
+            {
+                lblCalculatedRetailPrice.Text = UnitConvertion.CalculateUnitPrice(float.Parse(txtCalcRetailSaleQty.Text), float.Parse(txtCalcRetailSalePrice.Text)).ToString();
+            }
+            else
+            {
+                double convertedRetail = txtCalcRetailSaleQty.Text != string.Empty & txtCalcRetailSalePrice.Text != string.Empty ?
+                    UnitConvertion.ConvertWeightVol(double.Parse(txtCalcRetailSaleQty.Text), cbCalcRetailUnit.Text) : -1;
+                if (convertedRetail > 0)
+                {
+                    lblCalculatedRetailPrice.Text = Math.Round(double.Parse(txtCalcRetailSalePrice.Text) / convertedRetail * 1000, 2).ToString();
+                }
+                else
+                    lblCalcStatusMessage.ForeColor = Color.Red;
+                    lblCalcStatusMessage.Text = $"Datos invalidos, o la unidad de medida '{cbCalcRetailUnit.Text}' no es soportada, por favor use otra";
+
+            }
         }
 
         private void btnCalcCancel_Click(object sender, EventArgs e)

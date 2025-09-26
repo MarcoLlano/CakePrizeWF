@@ -132,7 +132,7 @@ namespace CakePrizeView.Forms.ingredients
             //TODO: FIX THIS
             bool pass = false;
             if (txtIngredientName.Text != string.Empty && txtPackQty.Text != string.Empty && txtRetailPrice.Text != string.Empty &&
-                txtWholesalePrice.Text != string.Empty && cmbIngredientBrand.Text != string.Empty)
+                txtWholesalePrice.Text != string.Empty)
             {
                 pass = true;
             }

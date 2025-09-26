@@ -6,6 +6,7 @@ using CakePrizeDB.Services;
 using CakePrizeView.Utils;
 using Microsoft.Data.SqlClient;
 using Microsoft.IdentityModel.Tokens;
+using static CakePrizeDB.Constants.DatabaseQueries;
 
 namespace CakePrizeView
 {
@@ -108,25 +109,34 @@ namespace CakePrizeView
                 return;
             }
 
-            if (e.ColumnIndex == 6)
+            if (e.ColumnIndex == 7)
             {
                 var row = gvIngredientsInfo.Rows[e.RowIndex];
                 var ingredient = row.Tag as IngredientModel;
                 if (ingredient != null)
                 {
                     UpdatePrizeInGrid(e.RowIndex, ingredient);
+                    UpdateUnitPriceCell(e.RowIndex);
                     var profitPercentage = !tsProfitPercentageCmb.Text.IsNullOrEmpty() ? tsProfitPercentageCmb.Text : "0";
-                    lblSalePrice.Text = CalculateTotal(int.Parse(profitPercentage)).ToString();
-                    lblPurchasePrice.Text = CalculateTotal(0).ToString();
+                    lblSalePrice.Text = Math.Round(CalculateTotal(int.Parse(profitPercentage)), 2).ToString();
+                    lblPurchasePrice.Text = Math.Round(CalculateTotal(0), 2).ToString();
                     UpdateProfitLabelFromGrid(int.Parse(profitPercentage));
                 }
+            }
+            else if (e.ColumnIndex == 2 || e.ColumnIndex == 4)
+            {
+                // Quantity or selected price changed → update unit price and totals
+                UpdateUnitPriceCell(e.RowIndex);
+                var profitPercentage = !tsProfitPercentageCmb.Text.IsNullOrEmpty() ? tsProfitPercentageCmb.Text : "0";
+                lblSalePrice.Text = Math.Round(CalculateTotal(int.Parse(profitPercentage)), 2).ToString();
+                lblPurchasePrice.Text = Math.Round(CalculateTotal(0), 2).ToString();
+                UpdateProfitLabelFromGrid(int.Parse(profitPercentage));
             }
         }
 
         private void UpdatePurchasePriceLabelFromGrid(int percentProfit)
         {
-            double total = CalculateTotal(percentProfit);
-            lblPurchasePrice.Text = total.ToString();
+            lblPurchasePrice.Text = Math.Round(CalculateTotal(percentProfit), 2).ToString();
         }
 
         private void UpdateProfitLabelFromGrid(int profitPercent)
@@ -144,16 +154,11 @@ namespace CakePrizeView
                 if (row.IsNewRow) continue;
                 var ingredient = row.Tag as IngredientModel;
                 if (ingredient == null) continue;
-                var prizeObj = row.Cells[4].Value;
-                var qtyObj = row.Cells[2].Value;
-                bool useWholesale = Convert.ToBoolean(row.Cells[6].Value);
-                var ingredientPriceObj = useWholesale ? ingredient.WholesalePrice : ingredient.RetailPrice;
-                double prizeVal = Convert.ToDouble(prizeObj);
-                double qtyIng = Convert.ToDouble(qtyObj);
-                double ingredientPriceVal = Convert.ToDouble(ingredientPriceObj);
-                ProductSizeModel size = productSizeService.GetProductSizeByProductId(lastSelectedProductId);
-                //se esta enviando incorrectamente los valores a calculateweightvolcost
-                total += PrizeCalculation.CalculateWeightVolCost(percentProfit, qtyIng, prizeVal, size.Portions);
+
+                total += PrizeCalculation.CalculateWeightVolCost(percentProfit, Convert.ToDouble(row.Cells[2].Value),
+                    Convert.ToDouble(row.Cells[4].Value), 
+                    productSizeService.GetProductSizeByProductId(lastSelectedProductId).Portions, unitTypeService.GetUnitTypeById(ingredient.UnitTypeId).Acronym, 
+                    ingredient.PackQty);
             }
             return total;
         }
@@ -217,11 +222,39 @@ namespace CakePrizeView
         {
             var qtyRetail = ingredient.RetailPrice;
             var qtyWholesale = ingredient.WholesalePrice;
-            bool useWholesale = Convert.ToBoolean(gvIngredientsInfo.Rows[rowIndex].Cells[6].Value);
+            bool useWholesale = Convert.ToBoolean(gvIngredientsInfo.Rows[rowIndex].Cells[7].Value);
             try
             {
                 isUpdatingGrid = true;
                 gvIngredientsInfo.Rows[rowIndex].Cells[4].Value = useWholesale ? qtyWholesale : qtyRetail;
+            }
+            finally
+            {
+                isUpdatingGrid = false;
+            }
+        }
+
+        private void UpdateUnitPriceCell(int rowIndex)
+        {
+            try
+            {
+                isUpdatingGrid = true;
+                var priceObj = gvIngredientsInfo.Rows[rowIndex].Cells[4].Value;
+                var qtyObj = gvIngredientsInfo.Rows[rowIndex].Cells[2].Value;
+                if (priceObj == null || qtyObj == null)
+                {
+                    return;
+                }
+                if (double.TryParse(Convert.ToString(priceObj), out double price) &&
+                    double.TryParse(Convert.ToString(qtyObj), out double qty))
+                {
+                    //here: to update unit prize in grid
+                    var costXIngredient = PrizeCalculation.CalculateWeightVolCost(0, Convert.ToDouble(gvIngredientsInfo.Rows[rowIndex].Cells[2].Value),
+                    Convert.ToDouble(gvIngredientsInfo.Rows[rowIndex].Cells[4].Value),
+                    productSizeService.GetProductSizeByProductId(lastSelectedProductId).Portions, gvIngredientsInfo.Rows[rowIndex].Cells[3].Value.ToString(),
+                    (int) gvIngredientsInfo.Rows[rowIndex].Cells[5].Value);
+                    gvIngredientsInfo.Rows[rowIndex].Cells[6].Value = costXIngredient;
+                }
             }
             finally
             {
@@ -260,16 +293,24 @@ namespace CakePrizeView
                     gvIngredientsInfo.Rows[rowIndex].Cells[2].Value = prodIngId.IngredientQtyPerPrep;
                     //unidad
                     gvIngredientsInfo.Rows[rowIndex].Cells[3].Value = unitType.Acronym;
-                    gvIngredientsInfo.Rows[rowIndex].Cells[5].Value = Math.Round(prodIngId.IngredientQtyPerPrep / qtyPerPrep, 2);
+                    gvIngredientsInfo.Rows[rowIndex].Cells[5].Value = ingredient.PackQty;
+
+                    //gvIngredientsInfo.Rows[rowIndex].Cells[6].Value = ingredient.PackQty;
                     //default precio
-                    gvIngredientsInfo.Rows[rowIndex].Cells[6].ReadOnly = false;
+                    gvIngredientsInfo.Rows[rowIndex].Cells[7].ReadOnly = false;
                     var defaultIsWholesale = ingredient.DefaultPrice == "Retail" ? false : true;
-                    gvIngredientsInfo.Rows[rowIndex].Cells[6].Value = defaultIsWholesale;
+                    gvIngredientsInfo.Rows[rowIndex].Cells[7].Value = defaultIsWholesale;
                     gvIngredientsInfo.CommitEdit(DataGridViewDataErrorContexts.Commit);
                     // store ingredient for later updates
                     gvIngredientsInfo.Rows[rowIndex].Tag = ingredient;
                     //precio
                     UpdatePrizeInGrid(rowIndex, ingredient);
+
+                    var costXIngredient = PrizeCalculation.CalculateWeightVolCost(0, Convert.ToDouble(gvIngredientsInfo.Rows[rowIndex].Cells[2].Value),
+                    Convert.ToDouble(gvIngredientsInfo.Rows[rowIndex].Cells[4].Value),
+                    productSizeService.GetProductSizeByProductId(lastSelectedProductId).Portions, gvIngredientsInfo.Rows[rowIndex].Cells[3].Value.ToString(),
+                    (int)gvIngredientsInfo.Rows[rowIndex].Cells[5].Value);
+                    gvIngredientsInfo.Rows[rowIndex].Cells[6].Value = costXIngredient;
                     rowIndex++;
                 }
             }
@@ -423,7 +464,6 @@ namespace CakePrizeView
                 var productId = productService.GetAllProducts()
                     .Where(product => product.Name == TSCmbProductList.Text)
                     .Select(item => item.Id).First();
-                var test = productIngredientService.GetProductIngredientByProductId(productId);
                 if (isRepopulating)
                 {
                     return;
@@ -539,6 +579,8 @@ namespace CakePrizeView
                 LoadImage(this, EventArgs.Empty, productId);
                 UpdatePurchasePriceLabelFromGrid(0);
                 UpdateProfitLabelFromGrid(int.Parse(tsProfitPercentageCmb.Text));
+                lblQtyXPrep.Text = productSizeService.GetProductSizeByProductId(lastSelectedProductId).Portions.ToString();
+
             }
             finally
             {
@@ -564,12 +606,13 @@ namespace CakePrizeView
                 if (gvIngredientsInfo.Columns.Count >= 2)
                 {
                     gvIngredientsInfo.Columns[0].Width = (int)(totalWidth * 0.2); // Ingredient column
-                    gvIngredientsInfo.Columns[1].Width = (int)(totalWidth * 0.2); // Quantity column
-                    gvIngredientsInfo.Columns[2].Width = (int)(totalWidth * 0.2); // Brand column
-                    gvIngredientsInfo.Columns[3].Width = (int)(totalWidth * 0.1); // Brand column
-                    gvIngredientsInfo.Columns[4].Width = (int)(totalWidth * 0.1); // Brand column
-                    gvIngredientsInfo.Columns[5].Width = (int)(totalWidth * 0.1); // Brand column
-                    gvIngredientsInfo.Columns[6].Width = (int)(totalWidth * 0.1); // Brand column
+                    gvIngredientsInfo.Columns[1].Width = (int)(totalWidth * 0.1); // Brand column
+                    gvIngredientsInfo.Columns[2].Width = (int)(totalWidth * 0.1); // Qty column
+                    gvIngredientsInfo.Columns[3].Width = (int)(totalWidth * 0.1); // Unit column
+                    gvIngredientsInfo.Columns[4].Width = (int)(totalWidth * 0.2); // RetWhole prize column
+                    gvIngredientsInfo.Columns[5].Width = (int)(totalWidth * 0.1); // Total weight column
+                    gvIngredientsInfo.Columns[6].Width = (int)(totalWidth * 0.1); // Unit price column
+                    gvIngredientsInfo.Columns[7].Width = (int)(totalWidth * 0.1); // Select price column
                 }
             }
         }

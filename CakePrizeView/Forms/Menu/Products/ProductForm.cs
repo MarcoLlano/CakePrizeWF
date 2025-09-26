@@ -19,6 +19,7 @@ namespace CakePrizeView.Forms.Menu.Products
         private BrandService brandService;
         private LogsService logsService;
         private UserService userService;
+        private ProductModel productEditModel;
         private string fileName;
         private string fullFileName;
 
@@ -28,6 +29,7 @@ namespace CakePrizeView.Forms.Menu.Products
 
         public ProductForm(Form previousForm, SqlConnection? sqlConnection = null)
         {
+            productEditModel = new ProductModel();
             brandService = new BrandService();
             prodTypeService = new ProductTypeService();
             productIngredientService = new ProductIngredientService();
@@ -43,7 +45,7 @@ namespace CakePrizeView.Forms.Menu.Products
             fileName = string.Empty;
             fullFileName = string.Empty;
             InitializeComponent();
-            
+
             // Initialize services after InitializeComponent to ensure proper connection state
             InitializeServices();
 
@@ -69,7 +71,7 @@ namespace CakePrizeView.Forms.Menu.Products
             {
                 // Create fresh connections for each service to ensure they're open and available
                 var connection = DatabaseConnectionManager.OpenConnection();
-                
+
                 prodTypeService = new ProductTypeService();
                 ingredientService = new IngredientService();
                 productService = new ProductService();
@@ -81,9 +83,16 @@ namespace CakePrizeView.Forms.Menu.Products
             catch (Exception ex)
             {
                 // If we can't create services, show error but don't crash the form
-                MessageBox.Show($"Failed to initialize database services: {ex.Message}", "Initialization Error", 
+                MessageBox.Show($"Failed to initialize database services: {ex.Message}", "Initialization Error",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private void FrmProduct_Load(object sender, EventArgs e)
+        {
+            GetAllProductTypes(sender, e);
+            GetAllIngredients(sender, e);
+            LoadProducts();
         }
 
         /// <summary>
@@ -107,8 +116,66 @@ namespace CakePrizeView.Forms.Menu.Products
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error setting up ComboBoxes: {ex.Message}", 
+                MessageBox.Show($"Error setting up ComboBoxes: {ex.Message}",
                     "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+
+        private void LoadProducts()
+        {
+            TSCmbProductList.Items.Clear();
+            var products = productService.GetAllProducts();
+            foreach (var prod in products)
+            {
+                TSCmbProductList.Items.Add($"{prod.Name}");
+            }
+        }
+
+        private void GetIngredientListByProdId(Guid prodId)
+        {
+            var prodIng = productIngredientService.GetProductIngredientByProductId(prodId);
+            foreach (var ing in prodIng)
+            {
+                var ingModl = ingredientService.GetIngredientById(ing.IngredientId);
+                var ingName = ingModl.Name;
+                string brandname = ingModl.BrandId.HasValue ? brandService.GetBrandById(ingModl.BrandId).Name : string.Empty;
+                FillIngredientsGrid(ingName, ing.IngredientQtyPerPrep.ToString(), brandname);
+            }
+        }
+
+        private void TSCmbProductList_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+            if (TSCmbProductList.Text != string.Empty)
+            {
+                gvProductIngredientList.Rows.Clear();
+                btnClearProductTexts.Hide();
+                btnSaveProduct.Hide();
+                btnEditProduct.Visible = true;
+                btnCancelEditProduct.Visible = true;
+
+                var selectedText = TSCmbProductList.Text;
+                var parts = selectedText.Split(" - ");
+                var selectedProductName = parts.Length > 0 ? parts[0] : string.Empty;
+                var selectedSizeName = parts.Length > 1 ? parts[1] : string.Empty;
+
+                List<Guid> selectedProductSizeId = null;
+                if (!string.IsNullOrWhiteSpace(selectedSizeName))
+                {
+                    selectedProductSizeId = productSizeService.GetAllProductSizes().Where(b => b.Size == selectedSizeName).Select(p => p.ProductId).ToList();
+                }
+
+
+                productEditModel = productService.GetAllProducts()
+                    .FindAll(prod => prod.Name == selectedText).First();
+                GetIngredientListByProdId(productEditModel.Id);
+
+                txtProductName.Text = selectedProductName;
+                cbProductType.Text = prodTypeService.GetProductTypeById(productEditModel.ProductTypeId).Name.ToString();
+                cbProductSize.Text = productSizeService.GetProductSizeByProductId(productEditModel.Id).Size.ToString();
+                txtProductPortionsPerPrep.Text = productSizeService.GetProductSizeByProductId(productEditModel.Id).Portions.ToString();
+                richTBProdComments.Text = productSizeService.GetProductSizeByProductId(productEditModel.Id).Comments.ToString();
             }
         }
 
@@ -127,7 +194,7 @@ namespace CakePrizeView.Forms.Menu.Products
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error with ProductType ComboBox: {ex.Message}", 
+                MessageBox.Show($"Error with ProductType ComboBox: {ex.Message}",
                     "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
@@ -147,7 +214,7 @@ namespace CakePrizeView.Forms.Menu.Products
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error with Ingredient ComboBox: {ex.Message}", 
+                MessageBox.Show($"Error with Ingredient ComboBox: {ex.Message}",
                     "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
@@ -162,21 +229,16 @@ namespace CakePrizeView.Forms.Menu.Products
 
         private void GetAllIngredients(object sender, EventArgs e)
         {
-            
+
             foreach (var item in ingredientService.GetAllIngredients())
             {
-                string brandName = item.BrandId.HasValue 
+                string brandName = item.BrandId.HasValue
                     ? brandService?.GetBrandById(item.BrandId.Value)?.Name ?? "Unknown Brand"
                     : "No Brand";
                 cbProductIngredient.Items.Add($"{item.Name} - {brandName}");
             }
         }
 
-        private void FrmProduct_Load(object sender, EventArgs e)
-        {
-            GetAllProductTypes(sender, e);
-            GetAllIngredients(sender, e);
-        }
 
         private void btnBackProductUnitForm_Click(object sender, EventArgs e)
         {
@@ -190,12 +252,17 @@ namespace CakePrizeView.Forms.Menu.Products
             previousForm.Close();
         }
 
-        private void btnProdAddIngredientToList_Click(object sender, EventArgs e)
+        private void FillIngredientsGrid(string ingredient, string qty, string brand)
         {
             int rowIndex = gvProductIngredientList.Rows.Add();
-            gvProductIngredientList.Rows[rowIndex].Cells[0].Value = StringUtils.GetIngredientWithoutBrand(cbProductIngredient.Text);
-            gvProductIngredientList.Rows[rowIndex].Cells[1].Value = txtProductIngrQty.Text;
-            gvProductIngredientList.Rows[rowIndex].Cells[2].Value = StringUtils.GetBrandWithoutIngredient(cbProductIngredient.Text);
+            gvProductIngredientList.Rows[rowIndex].Cells[0].Value = ingredient;
+            gvProductIngredientList.Rows[rowIndex].Cells[1].Value = qty;
+            gvProductIngredientList.Rows[rowIndex].Cells[2].Value = brand;
+        }
+
+        private void btnProdAddIngredientToList_Click(object sender, EventArgs e)
+        {
+            FillIngredientsGrid(StringUtils.GetIngredientWithoutBrand(cbProductIngredient.Text), txtProductIngrQty.Text, StringUtils.GetBrandWithoutIngredient(cbProductIngredient.Text));
         }
 
         private void txtProductIngredientImage_Click(object sender, EventArgs e)
@@ -287,7 +354,7 @@ namespace CakePrizeView.Forms.Menu.Products
         /// </summary>
         private void AdjustControlLayout(Control control, float scaleX, float scaleY)
         {
-            FormUtils.AdjustControlLayout(control, scaleX, scaleY, initialControlBounds);  
+            FormUtils.AdjustControlLayout(control, scaleX, scaleY, initialControlBounds);
         }
 
         /// <summary>
@@ -327,7 +394,7 @@ namespace CakePrizeView.Forms.Menu.Products
                     var newProdPhoto = LinkProductAndPhoto(sender, e, newProd.Id);
                     LinkProductAndSize(sender, e, newProd.Id, UserSession.GetCurrentUsername());
                     LinkProductAndIngredient(sender, e, newProd.Id, UserSession.GetCurrentUsername());
-                    
+
                     if (newProdPhoto != null)
                     {
                         MessageBox.Show("Product saved successfully with photo!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -357,7 +424,7 @@ namespace CakePrizeView.Forms.Menu.Products
         }
 
         /// <summary>
-        /// Links a product with its ingredients by iterating through the DataGridView rows
+        /// Links a product with its products by iterating through the DataGridView rows
         /// </summary>
         private void LinkProductAndIngredient(object sender, EventArgs e, Guid productId, string createdUser)
         {
@@ -377,7 +444,7 @@ namespace CakePrizeView.Forms.Menu.Products
 
                     // Get the quantity from the second column (index 1)
                     string quantityText = gvProductIngredientList.Rows[rowIndex].Cells[1].Value.ToString();
-                    
+
                     if (!string.IsNullOrEmpty(ingredientName) && !string.IsNullOrEmpty(quantityText))
                     {
                         // Find the ingredient ID by name using the local ingredientList dictionary
@@ -396,8 +463,8 @@ namespace CakePrizeView.Forms.Menu.Products
                                 .Select(t => t.Id ?? Guid.Empty)
                                 .FirstOrDefault();
                         }
-                        
-                        
+
+
                         if (ingredientId != Guid.Empty)
                         {
                             // Parse the quantity
@@ -413,13 +480,13 @@ namespace CakePrizeView.Forms.Menu.Products
                             }
                             else
                             {
-                                MessageBox.Show($"Invalid quantity format for ingredient '{ingredientName}': {quantityText}", 
+                                MessageBox.Show($"Invalid quantity format for ingredient '{ingredientName}': {quantityText}",
                                     "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                             }
                         }
                         else
                         {
-                            MessageBox.Show($"Ingredient '{ingredientName}' not found in the database.", 
+                            MessageBox.Show($"Ingredient '{ingredientName}' not found in the database.",
                                 "Ingredient Not Found", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                         }
                     }
@@ -427,7 +494,7 @@ namespace CakePrizeView.Forms.Menu.Products
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error linking product and ingredients: {ex.Message}", 
+                MessageBox.Show($"Error linking product and products: {ex.Message}",
                     "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -470,6 +537,11 @@ namespace CakePrizeView.Forms.Menu.Products
         }
 
         private void ClearFields(object sender, EventArgs e)
+        {
+
+        }
+
+        private void gvProductIngredientList_RowsRemoved(object sender, DataGridViewRowsRemovedEventArgs e)
         {
 
         }

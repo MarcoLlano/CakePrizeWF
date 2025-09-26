@@ -1,8 +1,6 @@
 using CakePrizeCore.libs.DBUtils;
 using CakePrizeDB.Models;
 using CakePrizeDB.Repositories;
-using System.Xml.Linq;
-using static CakePrizeDB.Constants.DatabaseQueries;
 
 namespace CakePrizeDB.Services
 {
