@@ -119,8 +119,9 @@ namespace CakePrizeView
                     UpdateUnitPriceCell(e.RowIndex);
                     var profitPercentage = !tsProfitPercentageCmb.Text.IsNullOrEmpty() ? tsProfitPercentageCmb.Text : "0";
                     lblSalePrice.Text = Math.Round(CalculateTotal(int.Parse(profitPercentage)), 2).ToString();
-                    lblPurchasePrice.Text = Math.Round(CalculateTotal(0), 2).ToString();
+                    lblUnitProd.Text = Math.Round(CalculateTotal(0), 2).ToString();
                     UpdateProfitLabelFromGrid(int.Parse(profitPercentage));
+                    lblTotalProd.Text = Math.Round(float.Parse(lblUnitProd.Text) * float.Parse(lblQtyXPrep.Text), 2).ToString();
                 }
             }
             else if (e.ColumnIndex == 2 || e.ColumnIndex == 4)
@@ -129,20 +130,23 @@ namespace CakePrizeView
                 UpdateUnitPriceCell(e.RowIndex);
                 var profitPercentage = !tsProfitPercentageCmb.Text.IsNullOrEmpty() ? tsProfitPercentageCmb.Text : "0";
                 lblSalePrice.Text = Math.Round(CalculateTotal(int.Parse(profitPercentage)), 2).ToString();
-                lblPurchasePrice.Text = Math.Round(CalculateTotal(0), 2).ToString();
+                lblUnitProd.Text = Math.Round(CalculateTotal(0), 2).ToString();
                 UpdateProfitLabelFromGrid(int.Parse(profitPercentage));
+                lblTotalProd.Text = Math.Round(float.Parse(lblUnitProd.Text) * float.Parse(lblQtyXPrep.Text), 2).ToString();
             }
         }
 
         private void UpdatePurchasePriceLabelFromGrid(int percentProfit)
         {
-            lblPurchasePrice.Text = Math.Round(CalculateTotal(percentProfit), 2).ToString();
+            lblUnitProd.Text = Math.Round(CalculateTotal(percentProfit), 2).ToString();
+            lblTotalProd.Text = Math.Round(float.Parse(lblUnitProd.Text) * float.Parse(lblQtyXPrep.Text), 2).ToString();
         }
 
         private void UpdateProfitLabelFromGrid(int profitPercent)
         {
             double totalProfit = CalculateTotal(profitPercent) - CalculateTotal(0);
-            lblProfit.Text = Math.Round(totalProfit, 2).ToString();
+            lblUnitUtility.Text = Math.Round(totalProfit, 2).ToString();
+            lblTotalUtility.Text = Math.Round(float.Parse(lblUnitUtility.Text) * float.Parse(lblQtyXPrep.Text), 2).ToString();
         }
 
         public double CalculateTotal(int percentProfit)
@@ -167,7 +171,7 @@ namespace CakePrizeView
         {
             try
             {
-                lblSalePrice.Text = CalculateTotal(percentageProfit).ToString();
+                lblSalePrice.Text = Math.Round(CalculateTotal(percentageProfit), 2).ToString();
             }
             catch (Exception ex)
             {
@@ -576,11 +580,10 @@ namespace CakePrizeView
                 UpdateTotalLabel(prodIngredients, int.Parse(tsProfitPercentageCmb.Text));
 
                 LblFormTitle.Text = TSCmbProductList.Text;
+                lblQtyXPrep.Text = productSizeService.GetProductSizeByProductId(lastSelectedProductId).Portions.ToString();
                 LoadImage(this, EventArgs.Empty, productId);
                 UpdatePurchasePriceLabelFromGrid(0);
                 UpdateProfitLabelFromGrid(int.Parse(tsProfitPercentageCmb.Text));
-                lblQtyXPrep.Text = productSizeService.GetProductSizeByProductId(lastSelectedProductId).Portions.ToString();
-
             }
             finally
             {
